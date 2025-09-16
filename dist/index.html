@@ -6,6 +6,7 @@
     <title>Visual Subnet Calculator - Split/Join</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link href="css/main.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <meta name="description" content="Quickly and easily design network layouts. Split and join subnets, add notes and color, then collaborate with others by sharing a custom link to your design.">
     <meta name="robots" content="index, follow" />
 
@@ -52,7 +53,7 @@
             </svg>
         </a>
     </div>
-    <h1>Visual Subnet Calculator</h1>
+    <h1><a href="/" class="text-decoration-none text-reset">Visual Subnet Calculator</a></h1>
     <div class="alert alert-primary  alert-dismissible show mt-3" role="alert">
         <p class="mb-1">Quickly and easily design network layouts. Split and join subnets, add notes and color, then collaborate with others by sharing a custom link to your design.</p>
         <p class="mb-0">Enter the network you wish to subnet and use the Split/Join buttons on the right to start designing!</p>
@@ -116,7 +117,59 @@
         </div>
     </form>
 
+    <!-- Auto-Allocation Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <button class="btn btn-link text-decoration-none p-0 text-start w-100" type="button" data-bs-toggle="collapse" data-bs-target="#autoAllocationBody" aria-expanded="false" aria-controls="autoAllocationBody">
+                    <i class="bi bi-chevron-right me-1"></i>
+                    Auto-Allocation Helper
+                </button>
+            </h5>
+        </div>
+        <div class="collapse" id="autoAllocationBody">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="subnetRequests" class="form-label">Subnet requirements</label>
+                    <textarea class="form-control font-monospace" id="subnetRequests" rows="3" placeholder="AzureFirewallSubnet /26&#10;GatewaySubnet /27&#10;AzureBastionSubnet /26"></textarea>
+                    <small class="text-muted">One per line: name /size</small>
+                    <div class="mt-2">
+                        <label for="sortOrder" class="form-label">Sort order</label>
+                        <select class="form-select form-select-sm" id="sortOrder">
+                            <option value="preserve">Preserve input order</option>
+                            <option value="alphabetical">Alphabetical by name</option>
+                            <option value="optimal">Optimize space usage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="reserveSpace" class="form-label">Pad after each subnet</label>
+                    <input type="text" class="form-control font-monospace" id="reserveSpace" value="" placeholder="/28">
+                    <small class="text-muted">Space to leave between subnets</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="futureSubnetSize" class="form-label">Alignment size (optional)</label>
+                    <input type="text" class="form-control font-monospace" id="futureSubnetSize" value="" placeholder="/24">
+                    <small class="text-muted">Force alignment to this boundary</small>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" value="" id="alignLargeOnly">
+                        <label class="form-check-label" for="alignLargeOnly">
+                            Only align subnets ≥ alignment size
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button id="btn_auto_allocate" class="btn btn-primary" type="button">Auto-Allocate Subnets</button>
+                <button id="btn_validate_alignment" class="btn btn-secondary ms-2" type="button">Analyze Network</button>
+            </div>
+        </div>
+        </div>
+    </div>
 
+    <!-- Allocation Results - Outside collapsible area for visibility -->
+    <div id="allocation_results" class="mb-3"></div>
 
     <table id="calc" class="table table-bordered font-monospace" aria-label="Subnet Table">
         <thead>
@@ -285,6 +338,15 @@
             crossorigin="anonymous"></script>
     <script src="js/lz-string.min.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // Handle chevron rotation for Auto-Allocation Helper
+        document.getElementById('autoAllocationBody').addEventListener('shown.bs.collapse', function () {
+            document.querySelector('[data-bs-target="#autoAllocationBody"] i').classList.replace('bi-chevron-right', 'bi-chevron-down');
+        });
+        document.getElementById('autoAllocationBody').addEventListener('hidden.bs.collapse', function () {
+            document.querySelector('[data-bs-target="#autoAllocationBody"] i').classList.replace('bi-chevron-down', 'bi-chevron-right');
+        });
+    </script>
 </div>
 </body>
 </html>

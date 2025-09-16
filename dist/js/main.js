@@ -83,6 +83,7 @@ $('#calcbody').on('click', '.row_address, .row_range, .row_usable, .row_hosts, .
         // We could re-render here, but there is really no point, keep performant and just change the background color now
         //renderTable();
         $(this).closest('tr').css('background-color', inflightColor)
+        updateBrowserHistory();
     }
 })
 
@@ -92,6 +93,8 @@ $('#btn_go').on('click', function() {
     if ($('#input_form').valid()) {
         $('#input_form')[0].classList.add('was-validated');
         reset();
+        // Update browser history after creating new network
+        updateBrowserHistory();
         // Additional actions upon validation can be added here
     } else {
         show_warning_modal('<div>Please correct the errors in the form!</div>');
@@ -228,6 +231,9 @@ $('#calcbody').on('click', 'td.split,td.join', function(event) {
     mutate_subnet_map(this.dataset.mutateVerb, this.dataset.subnet, '')
     this.dataset.subnet = sortIPCIDRs(this.dataset.subnet)
     renderTable(operatingMode);
+
+    // Update browser history after split/join operation
+    updateBrowserHistory();
 })
 
 $('#calcbody').on('keyup', 'td.note input', function(event) {
@@ -236,6 +242,7 @@ $('#calcbody').on('keyup', 'td.note input', function(event) {
     clearTimeout(noteTimeout);
     noteTimeout = setTimeout(function(element) {
         mutate_subnet_map('note', element.dataset.subnet, '', element.value)
+        updateBrowserHistory();
     }, delay, this);
 })
 
@@ -243,6 +250,7 @@ $('#calcbody').on('focusout', 'td.note input', function(event) {
     // HTML DOM Data elements! Yay! See the `data-*` attributes of the HTML tags
     clearTimeout(noteTimeout);
     mutate_subnet_map('note', this.dataset.subnet, '', this.value)
+    updateBrowserHistory();
 })
 
 
@@ -251,6 +259,20 @@ function renderTable(operatingMode) {
     $('#calcbody').empty();
     let maxDepth = get_dict_max_depth(subnetMap, 0)
     addRowTree(subnetMap, 0, maxDepth, operatingMode)
+    updatePrintAttributes();
+}
+
+function updatePrintAttributes() {
+    // Set the network title for printing
+    const network = $('#network').val();
+    const netsize = $('#netsize').val();
+    if (network && netsize) {
+        const printTitle = `${network}/${netsize}`;
+        $('body').attr('data-print-title', printTitle);
+    }
+
+    // Set the current URL for printing
+    $('body').attr('data-print-url', window.location.href);
 }
 
 function addRowTree(subnetTree, depth, maxDepth, operatingMode) {
@@ -824,6 +846,8 @@ $( document ).ready(function() {
     let autoConfigResult = processConfigUrl();
     if (!autoConfigResult) {
         reset();
+        // Only set initial state if we didn't process a config URL (processConfigUrl sets it)
+        window.history.replaceState(exportConfig(false), '', window.location.pathname);
     }
 });
 
@@ -863,6 +887,34 @@ function getConfigUrl() {
     return '/index.html?c=' + urlVersion + LZString.compressToEncodedURIComponent(JSON.stringify(defaultExport))
 }
 
+function updateBrowserHistory() {
+    // Store state in browser history without changing the URL (keeps URLs clean)
+    // The ugly compressed URL is only used when explicitly sharing via "Copy Shareable URL"
+    const currentState = exportConfig(false);
+
+    // Only push state if it's actually different from the current state
+    if (JSON.stringify(window.history.state) !== JSON.stringify(currentState)) {
+        // Use replaceState for the initial state, pushState for subsequent changes
+        if (!window.history.state) {
+            window.history.replaceState(currentState, '');
+        } else {
+            window.history.pushState(currentState, '', window.location.pathname);
+        }
+    }
+}
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', function(event) {
+    if (event.state) {
+        // Restore the state from history
+        importConfig(event.state);
+        renderTable(operatingMode);
+    } else {
+        // If no state, try to process the URL
+        processConfigUrl();
+    }
+});
+
 function processConfigUrl() {
     const params = new Proxy(new URLSearchParams(window.location.search), {
         get: (searchParams, prop) => searchParams.get(prop),
@@ -891,6 +943,14 @@ function processConfigUrl() {
             urlConfig['subnets'] = expandedSubnetMap
         }
         importConfig(urlConfig)
+
+        // Clean up the URL after processing the shared link
+        // This removes the ugly compressed parameter while keeping the state in history
+        if (window.history.replaceState) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState(exportConfig(false), '', cleanUrl);
+        }
+
         return true
     }
 }
@@ -1017,3 +1077,461 @@ function sortIPCIDRs(obj) {
 }
 
 const rgba2hex = (rgba) => `#${rgba.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.{0,1}\d*))?\)$/).slice(1).map((n, i) => (i === 3 ? Math.round(parseFloat(n) * 255) : parseFloat(n)).toString(16).padStart(2, '0').replace('NaN', '')).join('')}`
+
+// Auto-Allocation Functions
+function parseSubnetSize(input) {
+    // Parse and validate subnet size input
+    // Accepts: empty, "0", "/0", "9"-"32", "/9"-"/32"
+    // Returns: number (9-32) or null for empty/0
+
+    if (!input || input.trim() === '') {
+        return null;
+    }
+
+    const trimmed = input.trim();
+
+    // Handle 0 and /0 specially
+    if (trimmed === '0' || trimmed === '/0') {
+        return null;
+    }
+
+    let size = null;
+
+    // Check for /XX format
+    if (trimmed.startsWith('/')) {
+        const numPart = trimmed.substring(1);
+        // Check if rest is a valid number
+        if (!/^\d+$/.test(numPart)) {
+            return 'invalid';
+        }
+        size = parseInt(numPart);
+    } else {
+        // Just a number - check it's all digits
+        if (!/^\d+$/.test(trimmed)) {
+            return 'invalid';
+        }
+        size = parseInt(trimmed);
+    }
+
+    // Validate it's in valid range
+    if (size < 9 || size > 32) {
+        return 'invalid';
+    }
+
+    return size;
+}
+
+function isValidSubnetAlignment(networkAddr, netSize) {
+    // Check if a network address is properly aligned for its size
+    const ipInt = ip2int(networkAddr);
+    const blockSize = Math.pow(2, 32 - netSize);
+    return (ipInt % blockSize) === 0;
+}
+
+function getNextAlignedSubnet(currentAddr, netSize, alignToSize) {
+    // Find the next properly aligned subnet address
+    const ipInt = ip2int(currentAddr);
+    const blockSize = Math.pow(2, 32 - netSize);
+    const alignBlockSize = Math.pow(2, 32 - alignToSize);
+
+    // Align to the larger of the two block sizes
+    const alignmentSize = Math.max(blockSize, alignBlockSize);
+
+    // Calculate next aligned address
+    const aligned = Math.ceil(ipInt / alignmentSize) * alignmentSize;
+
+    return int2ip(aligned);
+}
+
+function calculateReservedSpace(baseNetwork, baseNetSize, reserveSize) {
+    // Calculate the starting point after reserving space at the end
+    const baseAddr = ip2int(baseNetwork);
+    const totalAddresses = Math.pow(2, 32 - baseNetSize);
+    const reserveAddresses = Math.pow(2, 32 - reserveSize);
+
+    // Return the last address before reserved space
+    return baseAddr + totalAddresses - reserveAddresses;
+}
+
+function parseSubnetRequests(requestText, sortOrder = 'preserve') {
+    // Parse the subnet requests from the textarea
+    const lines = requestText.trim().split('\n');
+    const requests = [];
+    const errors = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed === '') continue;
+
+        // Parse format: "name /size" or "name size"
+        const match = trimmed.match(/^(.+?)\s+\/?(\d+)$/);
+        if (match) {
+            const name = match[1].trim();
+            const size = parseInt(match[2]);
+            if (size < 9 || size > 32) {
+                errors.push(`${name}: Invalid subnet size /${size} (must be /9 to /32)`);
+            } else {
+                requests.push({
+                    name: name,
+                    size: size
+                });
+            }
+        } else {
+            errors.push(`Line ${i + 1}: Invalid format "${trimmed}" (use "name /size" or "name size")`);
+        }
+    }
+
+    // Return errors if any
+    if (errors.length > 0) {
+        return { errors: errors };
+    }
+
+    // Apply sorting based on sortOrder parameter
+    switch (sortOrder) {
+        case 'alphabetical':
+            // Sort alphabetically by name
+            requests.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        case 'optimal':
+            // Sort by size (largest first) for optimal packing
+            // This helps reduce fragmentation by allocating large subnets first
+            requests.sort((a, b) => a.size - b.size);
+            break;
+        case 'preserve':
+        default:
+            // Keep original order - do not sort
+            break;
+    }
+
+    return requests;
+}
+
+$('#btn_auto_allocate').on('click', function() {
+    const baseNetwork = $('#network').val();
+    const baseNetSize = parseInt($('#netsize').val());
+    const reserveSpaceText = $('#reserveSpace').val();
+    const futureSubnetText = $('#futureSubnetSize').val();
+    const subnetRequestsText = $('#subnetRequests').val();
+    const sortOrder = $('#sortOrder').val();
+    const alignLargeOnly = $('#alignLargeOnly').is(':checked');
+
+    // Parse and validate inputs
+    const paddingSize = parseSubnetSize(reserveSpaceText);
+    const alignToSize = parseSubnetSize(futureSubnetText);
+
+    // Check for validation errors
+    if (paddingSize === 'invalid') {
+        $('#allocation_results').html('<div class="alert alert-danger">Invalid padding size. Use empty, 0, /0, or /9 through /32</div>');
+        return;
+    }
+
+    if (alignToSize === 'invalid') {
+        $('#allocation_results').html('<div class="alert alert-danger">Invalid alignment size. Use empty, 0, /0, or /9 through /32</div>');
+        return;
+    }
+
+    const subnetRequests = parseSubnetRequests(subnetRequestsText, sortOrder);
+
+    // Check if parsing returned errors
+    if (subnetRequests.errors) {
+        let errorHtml = '<div class="alert alert-danger"><strong>Subnet Requirements Errors:</strong><ul class="mb-0">';
+        for (const error of subnetRequests.errors) {
+            errorHtml += `<li>${error}</li>`;
+        }
+        errorHtml += '</ul></div>';
+        $('#allocation_results').html(errorHtml);
+        return;
+    }
+
+    if (subnetRequests.length === 0) {
+        $('#allocation_results').html('<div class="alert alert-warning">Please enter subnet requirements</div>');
+        return;
+    }
+
+    // First, ensure we have a completely clean base network
+    // Force a full reset by clearing the subnet map first
+    subnetMap = {};
+    $('#btn_go').click();
+
+    // Wait a moment for the reset to complete
+    setTimeout(function() {
+        let rootNetwork = get_network(baseNetwork, baseNetSize);
+        let rootCidr = `${rootNetwork}/${baseNetSize}`;
+
+        // Calculate available space
+        let currentAddrInt = ip2int(rootNetwork);
+        let endAddr = currentAddrInt + Math.pow(2, 32 - baseNetSize);
+
+        // Allocate subnets
+        const allocations = [];
+        let allocationErrors = [];
+
+        // alignToSize is already parsed and validated above
+        const alignmentSize = alignToSize;
+
+        for (const request of subnetRequests) {
+            // Determine alignment size based on settings
+            let effectiveAlignSize = request.size; // Default to natural alignment
+
+            if (alignmentSize) {
+                if (alignLargeOnly) {
+                    // Only apply alignment to subnets that are >= alignment size (smaller CIDR number)
+                    if (request.size <= alignmentSize) {
+                        // Subnet is large enough, apply alignment
+                        effectiveAlignSize = alignmentSize;
+                    }
+                    // Otherwise use natural alignment (effectiveAlignSize stays as request.size)
+                } else {
+                    // Apply alignment to all subnets
+                    effectiveAlignSize = alignmentSize;
+                }
+            }
+
+            // Ensure proper alignment
+            if (!isValidSubnetAlignment(int2ip(currentAddrInt), effectiveAlignSize)) {
+                const alignedAddr = getNextAlignedSubnet(int2ip(currentAddrInt), effectiveAlignSize, effectiveAlignSize);
+                currentAddrInt = ip2int(alignedAddr);
+            }
+
+            // Check if we have enough space
+            const subnetSize = Math.pow(2, 32 - request.size);
+            if (currentAddrInt + subnetSize > endAddr) {
+                allocationErrors.push(`Not enough space for ${request.name} /${request.size}`);
+                continue;
+            }
+
+            // Record the allocation
+            allocations.push({
+                name: request.name,
+                network: int2ip(currentAddrInt),
+                size: request.size,
+                cidr: `${int2ip(currentAddrInt)}/${request.size}`
+            });
+
+            // Move to next available address
+            currentAddrInt += subnetSize;
+
+            // Add padding after this subnet if requested (except for the last subnet)
+            const currentIndex = allocations.length - 1; // We just pushed this allocation
+            if (paddingSize && currentIndex < subnetRequests.length - 1) {
+                const paddingBlockSize = Math.pow(2, 32 - paddingSize);
+                // Simply add the padding block
+                currentAddrInt += paddingBlockSize;
+            }
+        }
+
+        // Display results
+        let resultsHtml = '';
+
+        if (allocations.length > 0) {
+            resultsHtml += '<div class="alert alert-success"><h6>Allocated Subnets:</h6><ul class="mb-0">';
+            for (const alloc of allocations) {
+                resultsHtml += `<li><strong>${alloc.name}:</strong> ${alloc.cidr}</li>`;
+            }
+            resultsHtml += '</ul></div>';
+
+            // Now perform the actual splitting in the visual calculator
+            // Simplified approach: just split recursively until we have all needed subnets
+
+            function performAllocationSplits() {
+                // Keep splitting until all allocations exist
+                let maxIterations = 50;
+                let allFound = false;
+
+                while (!allFound && maxIterations-- > 0) {
+                    allFound = true;
+
+                    for (const alloc of allocations) {
+                        // Check if this allocation's subnet exists
+                        if (!findSubnetInTree(alloc.cidr, subnetMap)) {
+                            allFound = false;
+
+                            // Find the smallest parent that exists and split it
+                            for (let parentSize = alloc.size - 1; parentSize >= baseNetSize; parentSize--) {
+                                const parentNet = get_network(alloc.network, parentSize);
+                                const parentCidr = `${parentNet}/${parentSize}`;
+
+                                if (findAndSplitIfNeeded(parentCidr, subnetMap)) {
+                                    break; // Split successful, move to next iteration
+                                }
+                            }
+                        }
+                    }
+                }
+
+                function findSubnetInTree(cidr, tree) {
+                    for (let key in tree) {
+                        if (key === cidr) return true;
+                        if (typeof tree[key] === 'object' && !key.startsWith('_')) {
+                            if (findSubnetInTree(cidr, tree[key])) return true;
+                        }
+                    }
+                    return false;
+                }
+
+                function findAndSplitIfNeeded(cidr, tree) {
+                    for (let key in tree) {
+                        if (key === cidr && !has_network_sub_keys(tree[key])) {
+                            mutate_subnet_map('split', key, '');
+                            return true;
+                        }
+                        if (typeof tree[key] === 'object' && !key.startsWith('_')) {
+                            if (findAndSplitIfNeeded(cidr, tree[key])) return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+
+            // Perform all the splits
+            performAllocationSplits();
+
+            // Re-render the table
+            renderTable(operatingMode);
+
+            // Now add the notes to the correct subnets
+            // We need to do this AFTER rendering to ensure all subnets exist
+            setTimeout(function() {
+                // Clear any existing notes first to avoid duplicates
+                $('input.form-control[data-subnet]').each(function() {
+                    const subnet = $(this).attr('data-subnet');
+                    // Only clear if this subnet is one we're allocating
+                    if (allocations.find(a => a.cidr === subnet)) {
+                        $(this).val('');
+                        mutate_subnet_map('note', subnet, '', '');
+                    }
+                });
+
+                // Now add the correct notes
+                for (const alloc of allocations) {
+                    // Set the note directly in the subnet map
+                    mutate_subnet_map('note', alloc.cidr, '', alloc.name);
+                }
+
+                // Re-render to show the notes
+                renderTable(operatingMode);
+            }, 200);
+        }
+
+        if (allocationErrors.length > 0) {
+            resultsHtml += '<div class="alert alert-danger"><h6>Errors:</h6><ul class="mb-0">';
+            for (const error of allocationErrors) {
+                resultsHtml += `<li>${error}</li>`;
+            }
+            resultsHtml += '</ul></div>';
+        }
+
+        $('#allocation_results').html(resultsHtml);
+    }, 100);
+});
+
+$('#btn_validate_alignment').on('click', function() {
+    // Validate existing subnets for alignment issues
+    const issues = [];
+    const warnings = [];
+    let totalSubnets = 0;
+    let totalHosts = 0;
+    let totalUnused = 0;
+
+    // Get base network info
+    const baseNetwork = $('#network').val();
+    const baseNetSize = parseInt($('#netsize').val());
+    const baseNetworkAddr = get_network(baseNetwork, baseNetSize);
+    const baseNetworkInt = ip2int(baseNetworkAddr);
+    const baseTotalSize = Math.pow(2, 32 - baseNetSize);
+
+    // Track allocated space
+    const allocatedRanges = [];
+
+    // Check all subnets in the map
+    function checkSubnets(subnetTree, depth = 0) {
+        for (let mapKey in subnetTree) {
+            if (mapKey.startsWith('_')) continue;
+
+            const [network, size] = mapKey.split('/');
+            const netSize = parseInt(size);
+
+            // Only check leaf nodes (actual allocated subnets)
+            if (!has_network_sub_keys(subnetTree[mapKey])) {
+                totalSubnets++;
+                const subnetHosts = Math.pow(2, 32 - netSize);
+                totalHosts += subnetHosts;
+
+                // Check if this subnet is properly aligned
+                if (!isValidSubnetAlignment(network, netSize)) {
+                    issues.push(`${mapKey} is not properly aligned - invalid subnet boundary`);
+                }
+
+                // Track this allocation
+                allocatedRanges.push({
+                    start: ip2int(network),
+                    end: ip2int(network) + subnetHosts - 1,
+                    cidr: mapKey,
+                    size: netSize
+                });
+            }
+
+            // Recurse if there are sub-networks
+            if (has_network_sub_keys(subnetTree[mapKey])) {
+                checkSubnets(subnetTree[mapKey], depth + 1);
+            }
+        }
+    }
+
+    checkSubnets(subnetMap);
+
+    // Sort allocated ranges
+    allocatedRanges.sort((a, b) => a.start - b.start);
+
+    // Check for gaps and overlaps
+    for (let i = 0; i < allocatedRanges.length; i++) {
+        if (i > 0) {
+            const prevEnd = allocatedRanges[i - 1].end;
+            const currStart = allocatedRanges[i].start;
+
+            if (currStart <= prevEnd) {
+                issues.push(`Overlap detected: ${allocatedRanges[i - 1].cidr} overlaps with ${allocatedRanges[i].cidr}`);
+            } else if (currStart > prevEnd + 1) {
+                const gapSize = currStart - prevEnd - 1;
+                const gapStart = int2ip(prevEnd + 1);
+                const gapEnd = int2ip(currStart - 1);
+                warnings.push(`Gap of ${gapSize} addresses between ${allocatedRanges[i - 1].cidr} and ${allocatedRanges[i].cidr} (${gapStart} - ${gapEnd})`);
+                totalUnused += gapSize;
+            }
+        }
+    }
+
+    // Calculate total unused space
+    const totalAllocated = totalHosts;
+    totalUnused = baseTotalSize - totalAllocated;
+    const utilizationPercent = ((totalAllocated / baseTotalSize) * 100).toFixed(1);
+
+    // Display validation results
+    let resultsHtml = '<div class="alert alert-info"><h6>Network Analysis:</h6>';
+    resultsHtml += `<ul class="mb-0">`;
+    resultsHtml += `<li><strong>Total Subnets:</strong> ${totalSubnets}</li>`;
+    resultsHtml += `<li><strong>Total Allocated:</strong> ${totalAllocated} addresses (${utilizationPercent}%)</li>`;
+    resultsHtml += `<li><strong>Total Available:</strong> ${totalUnused} addresses</li>`;
+    resultsHtml += `</ul></div>`;
+
+    if (issues.length === 0 && warnings.length === 0) {
+        resultsHtml += '<div class="alert alert-success">All subnets are properly aligned with no gaps!</div>';
+    } else {
+        if (issues.length > 0) {
+            resultsHtml += '<div class="alert alert-danger"><h6>Issues Found:</h6><ul class="mb-0">';
+            for (const issue of issues) {
+                resultsHtml += `<li>${issue}</li>`;
+            }
+            resultsHtml += '</ul></div>';
+        }
+        if (warnings.length > 0) {
+            resultsHtml += '<div class="alert alert-warning"><h6>Gaps Detected:</h6><ul class="mb-0">';
+            for (const warning of warnings) {
+                resultsHtml += `<li>${warning}</li>`;
+            }
+            resultsHtml += '</ul></div>';
+        }
+    }
+
+    $('#allocation_results').html(resultsHtml);
+});
