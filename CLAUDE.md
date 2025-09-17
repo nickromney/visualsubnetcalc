@@ -113,16 +113,20 @@ NO_SERVER=1 npx playwright test # Skip server startup (run tests in parallel)
 Located in `dist/js/main.js`, the auto-allocation feature:
 
 - **Always starts fresh**: Clears `subnetMap = {}` before allocating to prevent duplicates
-- **Preserves input order**: Does NOT sort subnets by size - allocates in the order specified
-- **Handles padding**: "Pad after each subnet" adds spacing between allocations (not at the end)
-- **Ensures proper alignment**: All subnets are aligned to their natural boundaries (e.g., /24 on /24 boundary)
+- **Multiple sort options**: Preserve input order (default), alphabetical by name, or optimize space usage
+- **Smart padding**: Adds spacing between allocations with intelligent look-ahead for alignment
+- **Flexible alignment**: Supports custom alignment boundaries (e.g., align all to /24)
+- **Selective alignment**: Option to align only large subnets while keeping small ones naturally aligned
 - **Visual splitting**: Uses recursive splitting to create the proper subnet hierarchy in the visual table
+- **Spare consolidation**: Creates properly-sized spare blocks instead of fragmented pieces
 
 Key functions:
 
-- `parseSubnetRequests()` - Parses user input, returns in original order (no sorting!)
+- `parseSubnetRequests()` - Parses user input with optional sorting
 - `isValidSubnetAlignment()` - Checks if an IP is properly aligned for its subnet size
+- `getNextAlignedSubnet()` - Finds next properly aligned address for a subnet
 - `performAllocationSplits()` - Recursively splits the network to create required subnets
+- `parseSubnetSize()` - Validates and parses subnet size inputs (empty, 0, /0, or /9-/32)
 
 ### Network Analysis (formerly Validate Alignment)
 
@@ -174,15 +178,40 @@ Column visibility is toggled via "Show/Hide Additional Columns" button.
 - **Server requirement**: Tests need HTTPS server running on port 8443 unless using `NO_SERVER=1`
 - **Available test files**: auto-allocation, browser-history, print-styles, import-export, deep-functional, bug-fixes
 
+### Recent Features (2024)
+
+#### Keyboard Navigation
+- Arrow keys navigate between subnet note fields (up/down for rows)
+- Tab key moves to next row's note field
+- Implemented in note field keydown handlers
+
+#### RFC Address Detection
+- Detects RFC1918 private addresses (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+- Detects RFC6598 shared address space (100.64.0.0/10)
+- Shows Type column with values: RFC1918, RFC6598, or Public
+
+#### Copy Table Enhancement
+- Copies ALL columns including additional columns
+- Includes parent network information at top
+- Excel/Confluence-friendly formatting
+- Shows both visible and hidden columns in export
+
+#### Auto-Allocation Improvements
+- **Sort options**: Preserve order, alphabetical, or optimize space
+- **Alignment options**: Custom boundaries with selective application
+- **Smart padding**: Look-ahead logic considers next subnet's alignment
+- **Spare blocks**: Creates properly-sized blocks instead of fragments
+
 ### Common Pitfalls to Avoid
 
 1. **Don't edit compiled files**: The project structure is unusual - `dist/js/main.js` IS the source file, not compiled output
 2. **Subnet alignment**: A subnet must start on its size boundary (e.g., /25 must start on a /25 boundary like .0, .128)
 3. **Reset behavior**: The `reset()` function tries to preserve data - for clean slate, clear `subnetMap` first
-4. **Sorting subnets**: User input order matters - don't sort by size as it changes the allocation layout
-5. **Padding vs Reserve**: Padding is between each subnet, not just at the end of the network
+4. **Sorting subnets**: User input order matters unless explicitly sorted via dropdown
+5. **Padding vs alignment**: Padding adds space, alignment ensures boundary compliance
 6. **Working directory**: Always run commands from the `src/` directory (npm, tests, builds)
 7. **Test server conflicts**: Kill any running servers before starting tests to avoid port conflicts
+8. **Auto-allocation state**: Don't update textarea with spare subnets - keep original requests only
 
 ### Debugging Tips
 
