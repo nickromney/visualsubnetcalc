@@ -13,6 +13,13 @@ test.describe('Auto-Allocation Input Validation', () => {
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Expand the Auto-Allocation Helper section
     await page.click('[data-bs-target="#autoAllocationBody"]');
     await page.waitForSelector('#autoAllocationBody.show');

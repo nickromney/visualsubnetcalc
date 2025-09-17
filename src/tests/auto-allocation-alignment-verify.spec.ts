@@ -17,6 +17,13 @@ test.describe('Alignment Verification', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Enter 4 x /26 subnets
     await page.fill('#subnetRequests', 'subnet1 /26\nsubnet2 /26\nsubnet3 /26\nsubnet4 /26');
 
@@ -28,7 +35,7 @@ test.describe('Alignment Verification', () => {
 
     // Click auto-allocate
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check the allocations
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -40,7 +47,7 @@ test.describe('Alignment Verification', () => {
     // Now let's add a 5th subnet (/24) and see where it goes
     await page.fill('#subnetRequests', 'subnet1 /26\nsubnet2 /26\nsubnet3 /26\nsubnet4 /26\nsubnet5 /24');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     const newAllocations = await page.locator('#allocation_results').textContent();
     console.log('With 5th subnet:', newAllocations);

@@ -6,6 +6,17 @@ Visual Subnet Calculator is a modernized tool based on the original work by [dav
 It strives to be a tool for quickly designing networks and collaborating on that design with others. It focuses on
 expediting the work of network administrators, not academic subnetting math.
 
+## Key Features
+
+- **Visual Subnet Design** - Split and join subnets with a single click
+- **Auto-allocation** - Automatically allocate subnets based on size requirements
+- **Network Analysis** - Validate alignment, detect gaps, and check utilization
+- **Mirror Networks** - Generate mirror networks for blue-green deployments or DR sites
+- **Multi-cloud Support** - AWS, Azure, and OCI subnet modes with proper address reservations
+- **Additional Columns** - Toggle IP, CIDR, Mask, and Type columns for detailed views
+- **Export Options** - Copy tables to Excel/Confluence, share via URL, or print
+- **Color Coding** - Visually organize subnets with colors and notes
+
 ## Design Tenets
 
 The following tenets are the most important values that drive the design of the tool. New features, pull requests, etc

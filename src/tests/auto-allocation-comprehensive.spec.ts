@@ -20,6 +20,13 @@ test.describe('Comprehensive Auto-Allocation Tests', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Enter the exact subnet requirements that were failing
     const subnetRequirements = `aks-system /26
 aks-ingress /27
@@ -36,8 +43,8 @@ AzureFirewallSubnet /26`;
     // Click auto-allocate
     await page.click('#btn_auto_allocate');
 
-    // Wait for allocation to complete
-    await page.waitForTimeout(500);
+    // Wait for allocation to complete (main setTimeout is 100ms, then another 200ms for notes)
+    await page.waitForTimeout(1000);
 
     // Check that all subnets were allocated
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -57,9 +64,12 @@ AzureFirewallSubnet /26`;
       const subnet = await input.getAttribute('data-subnet');
 
       if (value && value.trim() !== '') {
-        // Check that this note hasn't been used before
-        expect(subnetNotes[value], `Duplicate allocation found: ${value} appears in both ${subnetNotes[value]} and ${subnet}`).toBeUndefined();
-        subnetNotes[value] = subnet;
+        // Skip duplicate check for spare subnets since there can be multiple
+        if (!value.includes('(spare)')) {
+          // Check that this note hasn't been used before
+          expect(subnetNotes[value], `Duplicate allocation found: ${value} appears in both ${subnetNotes[value]} and ${subnet}`).toBeUndefined();
+          subnetNotes[value] = subnet;
+        }
       }
     }
 
@@ -82,6 +92,13 @@ AzureFirewallSubnet /26`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     const subnetRequirements = `web-tier /26
 app-tier /26
 db-tier /27`;
@@ -90,7 +107,7 @@ db-tier /27`;
     await page.fill('#reserveSpace', '/28'); // Add padding
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check allocations with padding
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -116,6 +133,13 @@ db-tier /27`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     const subnetRequirements = `large /22
 medium1 /24
 medium2 /24
@@ -127,7 +151,7 @@ tiny /29`;
     await page.fill('#reserveSpace', '');
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Verify all allocations are present
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -161,11 +185,18 @@ tiny /29`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Allocate some subnets
     await page.fill('#subnetRequests', 'first /24\nsecond /25');
     await page.fill('#reserveSpace', '');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Verify first allocation
     await expect(page.locator('#allocation_results')).toContainText('first: 10.10.0.0/24');
@@ -174,7 +205,7 @@ tiny /29`;
     // Now allocate more subnets (simulating incremental allocation)
     await page.fill('#subnetRequests', 'first /24\nsecond /25\nthird /26\nfourth /27');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that allocations don't overlap and names are correct
     const finalAllocations = await page.locator('input[data-subnet]').evaluateAll(inputs => {
@@ -209,6 +240,13 @@ tiny /29`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     const subnetRequirements = `subnet1 /24
 subnet2 /25
 subnet3 /26
@@ -218,7 +256,7 @@ subnet5 /28`;
     await page.fill('#subnetRequests', subnetRequirements);
     await page.fill('#reserveSpace', '');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Get all allocated subnets from the table
     const allocatedSubnets = await page.locator('input[data-subnet]').evaluateAll(inputs => {

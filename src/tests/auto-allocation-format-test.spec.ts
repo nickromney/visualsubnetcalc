@@ -13,6 +13,13 @@ test.describe('Subnet Request Format Tests', () => {
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Expand the Auto-Allocation Helper section
     await page.click('[data-bs-target="#autoAllocationBody"]');
     await page.waitForSelector('#autoAllocationBody.show');
@@ -21,7 +28,7 @@ test.describe('Subnet Request Format Tests', () => {
   test('should accept subnet requests with slash notation', async ({ page }) => {
     await page.fill('#subnetRequests', 'aks-apps /24\naks-system /26\naks-ingress /27');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should allocate successfully
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -33,7 +40,7 @@ test.describe('Subnet Request Format Tests', () => {
   test('should accept subnet requests without slash notation', async ({ page }) => {
     await page.fill('#subnetRequests', 'aks-apps 24\naks-system 26\naks-ingress 27');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should allocate successfully
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -45,7 +52,7 @@ test.describe('Subnet Request Format Tests', () => {
   test('should accept mixed format subnet requests', async ({ page }) => {
     await page.fill('#subnetRequests', 'aks-apps /24\naks-system 26\naks-ingress /27');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should allocate successfully with mixed formats
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -63,7 +70,7 @@ UPPERCASE-SUBNET 27
 subnet-123-numbers /28`);
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // All should be allocated successfully
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();

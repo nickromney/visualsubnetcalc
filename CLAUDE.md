@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Visual Subnet Calculator is a web-based tool for designing network layouts with visual subnet splitting/joining capabilities. The application is built with vanilla JavaScript, Bootstrap 5, and runs as a static site.
+Visual Subnet Calculator is a web-based tool for designing network layouts with visual subnet splitting/joining capabilities. The application is built with vanilla JavaScript, Bootstrap 5, and runs as a static site. Available at [visualsubnetcalc.com](https://visualsubnetcalc.com).
 
 ## Architecture
 
@@ -54,6 +54,7 @@ npm test                  # Run all Playwright tests
 npx playwright test [file] # Run specific test file
 npx playwright test --headed # Run tests with browser UI
 npx playwright test --debug # Debug tests interactively
+npx playwright test [file]:[line] --reporter=list --project=chromium # Run specific test at line number
 NO_SERVER=1 npx playwright test # Skip server startup (run tests in parallel)
 ```
 
@@ -132,11 +133,46 @@ The "Analyze Network" button provides actionable insights:
 - Proper alignment validation for each subnet
 - Overlap detection (shouldn't happen but good safety check)
 
+### Mirror Network Feature
+
+The "Mirror" button enables creation of duplicate network layouts for blue-green deployments or DR sites:
+
+- **Label System**: Uses customizable labels (default: Blue/Green) instead of generic Source/Mirror
+- **Two Actions in Modal**:
+  - "Copy Source and Mirror" - Exports both networks to clipboard for Excel/Confluence
+  - "Replace Source with Mirror" - Replaces current view with mirror network
+- **Validation**:
+  - IPv4 format validation using regex pattern
+  - Network alignment validation (must align to same CIDR boundary as source)
+  - Real-time visual feedback with Bootstrap `is-valid`/`is-invalid` classes
+  - Buttons disabled when input is invalid
+- **Smart Suggestions**: Pre-fills mirror network suggestion (e.g., 10.100.0.0 for 10.0.0.0)
+- **Excel-friendly Output**: Source/Mirror in first column for easy filtering
+
+Key functions:
+
+- `generateMirrorData()` - Creates mirror data without modifying current view
+- `generateMirrorAllocation()` - Replaces current network with mirror
+- `captureTableData()` - Captures complete table state for source preservation
+- Validation regex: `/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/`
+
+### Additional Columns
+
+The table supports toggling additional columns for detailed information:
+
+- **IP** - First IP address of the subnet
+- **CIDR** - CIDR notation (e.g., /24)
+- **Mask** - Subnet mask in dotted decimal (e.g., 255.255.255.0)
+- **Type** - Address type (RFC1918, RFC6598, Public)
+
+Column visibility is toggled via "Show/Hide Additional Columns" button.
+
 ### Testing Patterns
 
 - **Test organization**: Tests grouped by feature area (auto-allocation, browser-history, print-styles, etc.)
 - **Common test pattern**: Always wait after clicks (`waitForTimeout(500)`) for UI updates
 - **Server requirement**: Tests need HTTPS server running on port 8443 unless using `NO_SERVER=1`
+- **Available test files**: auto-allocation, browser-history, print-styles, import-export, deep-functional, bug-fixes
 
 ### Common Pitfalls to Avoid
 
@@ -145,6 +181,8 @@ The "Analyze Network" button provides actionable insights:
 3. **Reset behavior**: The `reset()` function tries to preserve data - for clean slate, clear `subnetMap` first
 4. **Sorting subnets**: User input order matters - don't sort by size as it changes the allocation layout
 5. **Padding vs Reserve**: Padding is between each subnet, not just at the end of the network
+6. **Working directory**: Always run commands from the `src/` directory (npm, tests, builds)
+7. **Test server conflicts**: Kill any running servers before starting tests to avoid port conflicts
 
 ### Debugging Tips
 

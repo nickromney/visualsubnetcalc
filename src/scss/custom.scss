@@ -26,6 +26,7 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
 
 @import "../node_modules/bootstrap/scss/bootstrap";
 
+
 // Print styles
 @media print {
   // Hide navigation and all UI elements except the table
@@ -39,7 +40,8 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
   #btn_go,
   h1,
   #allocation_results,
-  #autoAllocationBody {
+  #autoAllocationBody,
+  #toggleColumns {
     display: none !important;
   }
 
@@ -77,18 +79,39 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
     page-break-inside: avoid !important;
   }
 
-  // Show only first 5 columns
-  #calc th:nth-child(-n+5),
-  #calc td:nth-child(-n+5) {
+  // Hide additional columns (IP, CIDR, Mask) and Usable IPs
+  .additional-column,
+  #ipHeader,
+  #cidrHeader,
+  #maskHeader,
+  #useableHeader,
+  .row_ip,
+  .row_cidr,
+  .row_mask,
+  .row_usable {
+    display: none !important;
+  }
+
+  // Show only the essential columns
+  #subnetHeader,
+  #rangeHeader,
+  #hostsHeader,
+  #noteHeader,
+  .row_address,
+  .row_range,
+  .row_hosts,
+  .note {
     display: table-cell !important;
     padding: 4pt 8pt !important;
     border: 1px solid #000 !important;
     text-align: left !important;
   }
 
-  // Hide columns 6 and beyond
-  #calc th:nth-child(n+6),
-  #calc td:nth-child(n+6) {
+  // Hide split/join columns
+  .split,
+  .join,
+  td.split,
+  td.join {
     display: none !important;
   }
 

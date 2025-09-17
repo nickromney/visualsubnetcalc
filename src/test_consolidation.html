@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+    function consolidateSpareSubnets(requests) {
+        // Consolidate consecutive (spare) entries into larger blocks
+        if (!requests || requests.length === 0) return requests;
+
+        const consolidated = [];
+        let i = 0;
+
+        while (i < requests.length) {
+            if (requests[i].name === '(spare)') {
+                // Count consecutive spare subnets of the same size
+                let consecutiveCount = 1;
+                const currentSize = requests[i].size;
+
+                // Look ahead for consecutive spares of the same size
+                while (i + consecutiveCount < requests.length &&
+                       requests[i + consecutiveCount].name === '(spare)' &&
+                       requests[i + consecutiveCount].size === currentSize) {
+                    consecutiveCount++;
+                }
+
+                // If we have pairs of the same size, consolidate them
+                if (consecutiveCount >= 2) {
+                    // Calculate how many pairs we can make
+                    const pairs = Math.floor(consecutiveCount / 2);
+                    const remainder = consecutiveCount % 2;
+
+                    // Add consolidated pairs (two /N become one /(N-1))
+                    for (let j = 0; j < pairs; j++) {
+                        consolidated.push({
+                            name: '(spare)',
+                            size: currentSize - 1
+                        });
+                    }
+
+                    // If there's an odd one left, keep it
+                    if (remainder === 1) {
+                        consolidated.push({
+                            name: '(spare)',
+                            size: currentSize
+                        });
+                    }
+
+                    // Skip all the spares we just processed
+                    i += consecutiveCount;
+                } else {
+                    // Single spare, just add it
+                    consolidated.push(requests[i]);
+                    i++;
+                }
+            } else {
+                // Not a spare, just add it
+                consolidated.push(requests[i]);
+                i++;
+            }
+        }
+
+        // Recursively consolidate if we made any changes
+        if (consolidated.length < requests.length) {
+            return consolidateSpareSubnets(consolidated);
+        }
+
+        return consolidated;
+    }
+
+    // Test case
+    const input = [
+        {name: 'aks-apps', size: 24},
+        {name: '(spare)', size: 28},
+        {name: '(spare)', size: 28},
+        {name: 'aks-ingress', size: 27}
+    ];
+
+    console.log('Input:', JSON.stringify(input, null, 2));
+    const output = consolidateSpareSubnets(input);
+    console.log('Output:', JSON.stringify(output, null, 2));
+    
+    document.write('<pre>Input:\n' + JSON.stringify(input, null, 2) + '\n\nOutput:\n' + JSON.stringify(output, null, 2) + '</pre>');
+    </script>
+</head>
+<body>
+</body>
+</html>

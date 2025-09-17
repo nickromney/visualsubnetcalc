@@ -19,6 +19,13 @@ test.describe('Auto-Allocation Alignment Tests', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Enter subnet requirements - /26 and /25
     await page.fill('#subnetRequests', 'aks-system /26\naks-ingress /25');
 
@@ -32,7 +39,7 @@ test.describe('Auto-Allocation Alignment Tests', () => {
     await page.click('#btn_auto_allocate');
 
     // Wait for allocation to complete
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that success message appears
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -55,13 +62,20 @@ test.describe('Auto-Allocation Alignment Tests', () => {
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Three /27 subnets with /25 alignment
     await page.fill('#subnetRequests', 'subnet1 /27\nsubnet2 /27\nsubnet3 /27');
     await page.fill('#reserveSpace', '');
     await page.fill('#futureSubnetSize', '/25');
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // With /25 alignment, each /27 should start on a /25 boundary
     // /25 boundaries are at .0, .128
@@ -77,13 +91,20 @@ test.describe('Auto-Allocation Alignment Tests', () => {
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Two /28 subnets with /27 alignment and /29 padding
     await page.fill('#subnetRequests', 'test1 /28\ntest2 /28');
     await page.fill('#reserveSpace', '/29');
     await page.fill('#futureSubnetSize', '/27');
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // With /27 alignment:
     // - test1 /28 at 192.168.0.0/28 (aligned to /27)
@@ -100,13 +121,20 @@ test.describe('Auto-Allocation Alignment Tests', () => {
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Without alignment, subnets should pack tightly (just natural alignment)
     await page.fill('#subnetRequests', 'subnet1 /27\nsubnet2 /28');
     await page.fill('#reserveSpace', '');
     await page.fill('#futureSubnetSize', ''); // No alignment specified
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Without alignment override, should pack naturally
     await expect(page.locator('#allocation_results')).toContainText('subnet1: 10.10.0.0/27');
@@ -120,13 +148,20 @@ test.describe('Auto-Allocation Alignment Tests', () => {
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Small subnets with /22 alignment (large gaps)
     await page.fill('#subnetRequests', 'tiny1 /28\ntiny2 /28\ntiny3 /28');
     await page.fill('#reserveSpace', '');
     await page.fill('#futureSubnetSize', '/22');
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // With /22 alignment, each subnet starts on a /22 boundary
     // /22 boundaries in 10.0.0.0/16: 10.0.0.0, 10.0.4.0, 10.0.8.0, etc.

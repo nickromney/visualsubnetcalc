@@ -12,14 +12,21 @@ test.describe('Auto-Allocation New Features', () => {
     await page.fill('#netsize', '16');
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
-  });
+
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }  });
 
   test.describe('Sort Order Options', () => {
     test('should preserve input order by default', async ({ page }) => {
       await page.fill('#subnetRequests', 'zulu /27\nalpha /26\nmike /28');
       await page.selectOption('#sortOrder', 'preserve');
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       const results = await page.locator('#allocation_results').textContent();
       // Extract just the subnet names, avoiding "Allocated Subnets:" prefix
@@ -32,7 +39,7 @@ test.describe('Auto-Allocation New Features', () => {
       await page.fill('#subnetRequests', 'zulu /27\nalpha /26\nmike /28');
       await page.selectOption('#sortOrder', 'alphabetical');
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       const results = await page.locator('#allocation_results').textContent();
       // Extract just the subnet names, avoiding "Allocated Subnets:" prefix
@@ -47,7 +54,7 @@ test.describe('Auto-Allocation New Features', () => {
       await page.fill('#reserveSpace', ''); // Clear any default padding
       await page.selectOption('#sortOrder', 'optimal');
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // With optimal sorting, /24 should be first (largest)
       await expect(page.locator('#allocation_results')).toContainText('large: 10.0.0.0/24');
@@ -67,7 +74,7 @@ test.describe('Auto-Allocation New Features', () => {
       await checkbox.uncheck();
 
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // All subnets should align to /25 boundaries (.0, .128)
       await expect(page.locator('#allocation_results')).toContainText('subnet1: 10.0.0.0/28');
@@ -85,7 +92,7 @@ test.describe('Auto-Allocation New Features', () => {
       await checkbox.check();
 
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // Small subnets pack naturally, only /25 aligns to /25 boundary
       await expect(page.locator('#allocation_results')).toContainText('small1: 10.0.0.0/28');
@@ -101,7 +108,7 @@ test.describe('Auto-Allocation New Features', () => {
       await page.check('#alignLargeOnly');
 
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // With alignLargeOnly checked and /24 alignment:
       // - /26 subnets won't force /24 alignment (they're smaller than /24)
@@ -124,7 +131,7 @@ test.describe('Auto-Allocation New Features', () => {
     await page.uncheck('#alignLargeOnly'); // Align all to /24
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // With optimal sorting: /24 first, then /26, then /27
     // With /24 alignment: each on a /24 boundary

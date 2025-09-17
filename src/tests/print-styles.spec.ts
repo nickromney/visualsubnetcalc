@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.use({
-  baseURL: 'http://localhost:8080',
+  baseURL: 'http://localhost:8082',
   ignoreHTTPSErrors: false
 });
 
@@ -32,7 +32,7 @@ test.describe('Print Styles', () => {
     expect(printTitle).toBe('10.0.0.0/24');
 
     const printUrl = await page.getAttribute('body', 'data-print-url');
-    expect(printUrl).toContain('http://localhost:8080');
+    expect(printUrl).toContain('http://localhost:8082');
   });
 
   test('should hide UI elements in print media', async ({ page }) => {
@@ -68,25 +68,50 @@ test.describe('Print Styles', () => {
     expect(tbodyVisible).toBe(true);
   });
 
-  test('should show only first 5 columns in print media', async ({ page }) => {
+  test('should show only essential columns and hide toggle button in print media', async ({ page }) => {
     // Emulate print media
     await page.emulateMedia({ media: 'print' });
+
+    // Check that the toggle button is hidden
+    const toggleButtonVisible = await page.locator('#toggleColumns').isVisible();
+    expect(toggleButtonVisible).toBe(false);
 
     // Get first row of tbody
     const firstRow = page.locator('#calcbody tr').first();
 
-    // Check visibility of columns
-    for (let i = 1; i <= 5; i++) {
-      const cellVisible = await firstRow.locator(`td:nth-child(${i})`).isVisible();
-      expect(cellVisible).toBe(true);
-    }
+    // Check that essential columns are visible
+    const subnetAddressVisible = await firstRow.locator('.row_address').isVisible();
+    expect(subnetAddressVisible).toBe(true);
 
-    // Column 6+ should be hidden (if they exist)
-    const sixthColumn = await firstRow.locator('td:nth-child(6)').count();
-    if (sixthColumn > 0) {
-      const sixthVisible = await firstRow.locator('td:nth-child(6)').isVisible();
-      expect(sixthVisible).toBe(false);
-    }
+    const rangeVisible = await firstRow.locator('.row_range').isVisible();
+    expect(rangeVisible).toBe(true);
+
+    const hostsVisible = await firstRow.locator('.row_hosts').isVisible();
+    expect(hostsVisible).toBe(true);
+
+    const noteVisible = await firstRow.locator('.note').isVisible();
+    expect(noteVisible).toBe(true);
+
+    // Check that additional columns are hidden
+    const ipVisible = await firstRow.locator('.row_ip').isVisible();
+    expect(ipVisible).toBe(false);
+
+    const cidrVisible = await firstRow.locator('.row_cidr').isVisible();
+    expect(cidrVisible).toBe(false);
+
+    const maskVisible = await firstRow.locator('.row_mask').isVisible();
+    expect(maskVisible).toBe(false);
+
+    // Check that usable IPs column is hidden
+    const usableVisible = await firstRow.locator('.row_usable').isVisible();
+    expect(usableVisible).toBe(false);
+
+    // Check that split/join columns are hidden
+    const splitVisible = await firstRow.locator('.split').isVisible();
+    expect(splitVisible).toBe(false);
+
+    const joinVisible = await firstRow.locator('.join').isVisible();
+    expect(joinVisible).toBe(false);
   });
 
   test('should generate print-friendly content with CSS', async ({ page }) => {

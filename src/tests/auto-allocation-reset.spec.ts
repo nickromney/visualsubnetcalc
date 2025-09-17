@@ -19,6 +19,13 @@ test.describe('Auto-Allocation Reset Tests', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // Enter subnet requirements
     const subnetRequirements = `AzureFirewallSubnet /26
 aks-system /26
@@ -31,7 +38,7 @@ aks-apps /24`;
     // First allocation with /26 padding
     await page.fill('#reserveSpace', '/26');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check first allocation succeeded
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -45,7 +52,7 @@ aks-apps /24`;
     // Now change padding to /28 and re-allocate
     await page.fill('#reserveSpace', '/28');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check second allocation succeeded
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -90,11 +97,18 @@ aks-apps /24`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     // First allocation
     await page.fill('#subnetRequests', 'subnet1 /26\nsubnet2 /27');
     await page.fill('#reserveSpace', '');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Manually split some more subnets
     await page.click('td.split[data-subnet="192.168.0.128/25"]');
@@ -103,7 +117,7 @@ aks-apps /24`;
     // Now do another allocation with different requirements
     await page.fill('#subnetRequests', 'new-subnet1 /27\nnew-subnet2 /27\nnew-subnet3 /28');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that we have the new subnets, not the old ones
     const subnetNames = await page.locator('input[data-subnet]').evaluateAll(inputs =>
@@ -126,6 +140,13 @@ aks-apps /24`;
 
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
     const requirements = 'test1 /24\ntest2 /25\ntest3 /26';
     await page.fill('#subnetRequests', requirements);
 
@@ -135,7 +156,7 @@ aks-apps /24`;
     for (const padding of paddings) {
       await page.fill('#reserveSpace', padding);
       await page.click('#btn_auto_allocate');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // Count allocated subnets - should always be 3
       const count = await page.locator('input[data-subnet]').evaluateAll(inputs =>

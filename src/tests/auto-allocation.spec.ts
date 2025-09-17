@@ -33,6 +33,14 @@ test.describe('Auto-Allocation Feature', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
+
     // Enter subnet requirements
     await page.fill('#subnetRequests', 'aks-apps /24\naks-system /26\naks-ingress /27');
 
@@ -44,7 +52,7 @@ test.describe('Auto-Allocation Feature', () => {
     await page.click('#btn_auto_allocate');
 
     // Wait for allocation to complete
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that success message appears
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -98,7 +106,7 @@ test.describe('Auto-Allocation Feature', () => {
     await page.click('#btn_auto_allocate');
 
     // Wait for allocation to complete
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that error message appears
     await expect(page.locator('#allocation_results .alert-danger')).toBeVisible();
@@ -124,7 +132,7 @@ test.describe('Auto-Allocation Feature', () => {
     await page.click('#btn_auto_allocate');
 
     // Wait for allocation to complete
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check that allocations have padding between them
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
@@ -150,7 +158,7 @@ test.describe('Auto-Allocation Feature', () => {
     await page.fill('#subnetRequests', 'test1 /24\ntest2 /27\ntest3 /27');
 
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Check all allocated subnets are properly aligned
     const allocatedSubnets = await page.locator('#allocation_results li').allTextContents();

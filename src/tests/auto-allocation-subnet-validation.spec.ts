@@ -13,16 +13,20 @@ test.describe('Subnet Requirements Validation', () => {
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
 
-    // Expand the Auto-Allocation Helper section
-    await page.click('[data-bs-target="#autoAllocationBody"]');
-    await page.waitForSelector('#autoAllocationBody.show');
+    // Expand the auto-allocation panel if collapsed
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
   });
 
   test('should show in-context error for invalid subnet sizes', async ({ page }) => {
     // Test subnet size > 32
     await page.fill('#subnetRequests', 'AzureBastionSubnet 33');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should show error in allocation_results with subnet name, NOT a modal
     await expect(page.locator('#allocation_results .alert-danger')).toBeVisible();
@@ -31,7 +35,7 @@ test.describe('Subnet Requirements Validation', () => {
     // Test multiple invalid sizes
     await page.fill('#subnetRequests', 'subnet1 /24\nsubnet2 /5\nsubnet3 /40\nsubnet4 /25');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     await expect(page.locator('#allocation_results .alert-danger')).toBeVisible();
     await expect(page.locator('#allocation_results')).toContainText('subnet2: Invalid subnet size /5 (must be /9 to /32)');
@@ -45,7 +49,7 @@ test.describe('Subnet Requirements Validation', () => {
   test('should show error for invalid subnet request format', async ({ page }) => {
     await page.fill('#subnetRequests', 'aks-apps\njust-a-name\nvalid /24\n/24 without name');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     await expect(page.locator('#allocation_results .alert-danger')).toBeVisible();
     await expect(page.locator('#allocation_results')).toContainText('Line 1: Invalid format "aks-apps"');
@@ -59,7 +63,7 @@ test.describe('Subnet Requirements Validation', () => {
   test('should validate successfully when all subnet sizes are valid', async ({ page }) => {
     await page.fill('#subnetRequests', 'subnet-one /24\nsubnet-two 25\nsubnet-three /32\nsubnet-four /9');
     await page.click('#btn_auto_allocate');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should not show validation errors about invalid sizes or formats
     const resultText = await page.locator('#allocation_results').textContent();

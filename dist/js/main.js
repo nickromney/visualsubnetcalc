@@ -1,7 +1,8 @@
 let subnetMap = {};
 let subnetNotes = {};
 let maxNetSize = 0;
-let infoColumnCount = 5
+let infoColumnCount = 5  // Default without additional columns
+let additionalColumnsVisible = false;
 // NORMAL mode:
 //   - Smallest subnet: /32
 //   - Two reserved addresses per subnet of size <= 30:
@@ -71,13 +72,48 @@ $('input#network,input#netsize').on('input', function() {
     $('#input_form')[0].classList.add('was-validated');
 })
 
+// Add validation feedback to mirror network input
+$('#mirrorNetwork').on('input', function() {
+    let value = $(this).val().trim();
+    let ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+    if (value === '') {
+        $(this).removeClass('is-valid is-invalid');
+        // Disable buttons when empty
+        $('#copySourceAndMirror, #confirmMirror').prop('disabled', true);
+    } else if (ipv4Regex.test(value)) {
+        // Valid IP - now check alignment
+        let originalSize = parseInt($('#netsize').val());
+        let mirrorInt = ip2int(value);
+        let maskBits = 32 - originalSize;
+        let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+
+        if (mirrorInt === mirrorAligned) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+            $('#mirrorSizeHint').removeClass('text-danger').addClass('text-muted').text('Enter the base network for the mirror (must use same CIDR size as original - /' + originalSize + ')');
+            // Enable buttons
+            $('#copySourceAndMirror, #confirmMirror').prop('disabled', false);
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+            $('#mirrorSizeHint').removeClass('text-muted').addClass('text-danger').text('Network must be aligned to /' + originalSize + ' boundary');
+            // Disable buttons
+            $('#copySourceAndMirror, #confirmMirror').prop('disabled', true);
+        }
+    } else {
+        $(this).removeClass('is-valid').addClass('is-invalid');
+        $('#mirrorSizeHint').removeClass('text-muted').addClass('text-danger').text('Invalid IP address format');
+        // Disable buttons
+        $('#copySourceAndMirror, #confirmMirror').prop('disabled', true);
+    }
+})
+
 $('#color_palette div').on('click', function() {
     // We don't really NEED to convert this to hex, but it's really low overhead to do the
     // conversion here and saves us space in the export/save
     inflightColor = rgba2hex($(this).css('background-color'))
 })
 
-$('#calcbody').on('click', '.row_address, .row_range, .row_usable, .row_hosts, .note, input', function(event) {
+$('#calcbody').on('click', '.row_address, .row_ip, .row_cidr, .row_mask, .row_range, .row_usable, .row_hosts, .note, input', function(event) {
     if (inflightColor !== 'NONE') {
         mutate_subnet_map('color', this.dataset.subnet, '', inflightColor)
         // We could re-render here, but there is really no point, keep performant and just change the background color now
@@ -174,6 +210,685 @@ $('#bottom_nav #copy_url').on('click', function() {
 
 $('#btn_import_export').on('click', function() {
     $('#importExportArea').val(JSON.stringify(exportConfig(false), null, 2))
+})
+
+// Toggle additional columns visibility
+$('#toggleColumns').on('click', function() {
+    additionalColumnsVisible = !additionalColumnsVisible;
+
+    if (additionalColumnsVisible) {
+        // Show additional columns
+        $('.additional-column').show();
+        $(this).html('<i class="bi bi-table"></i> Hide Additional Columns');
+        infoColumnCount = 9; // 5 original + 4 additional (IP, CIDR, Mask, Type)
+    } else {
+        // Hide additional columns
+        $('.additional-column').hide();
+        $(this).html('<i class="bi bi-table"></i> Show Additional Columns');
+        infoColumnCount = 5; // 5 original columns
+    }
+
+    // Re-render the table to adjust colspan values properly
+    renderTable(operatingMode);
+})
+
+// Copy table to clipboard functionality
+$('#copyTable').on('click', function() {
+    // Get the parent network information
+    let networkInput = $('#network').val();
+    let netsize = $('#netsize').val();
+
+    // Check if there's actually a calculated network
+    if (!networkInput || !netsize || $('#calcbody tr').length === 0) {
+        show_warning_modal('<div class="alert alert-danger">No network to copy. Please calculate a network first.</div>');
+        return;
+    }
+
+    let parentNetwork = networkInput + '/' + netsize;
+    let parentNetmask = cidr2mask(parseInt(netsize));
+
+    // Calculate range and host count for parent network
+    let addressFirst = ip2int(networkInput);
+    let addressLast = subnet_last_address(addressFirst, parseInt(netsize));
+    let usableFirst = subnet_usable_first(addressFirst, parseInt(netsize), operatingMode);
+    let usableLast = subnet_usable_last(addressFirst, parseInt(netsize));
+    let parentHosts = 1 + usableLast - usableFirst;
+    let parentRange = int2ip(addressFirst) + ' - ' + int2ip(addressLast);
+    if (parseInt(netsize) >= 32) {
+        parentRange = int2ip(addressFirst);
+    }
+
+    // Start building the table data with headers
+    let tableData = [];
+
+    // Always include ALL columns in copy
+    let headers = ['Network Address', 'IP', 'CIDR', 'Mask', 'Type', 'Range of Addresses', 'Usable IPs', 'Hosts', 'Note'];
+    tableData.push(headers.join('\t'));
+
+    // Check if there's only one row and it matches the parent network
+    let rows = $('#calcbody tr');
+    let singleRowIsParent = false;
+
+    if (rows.length === 1) {
+        let singleSubnet = rows.first().find('.row_address').text().trim();
+        if (singleSubnet === parentNetwork) {
+            singleRowIsParent = true;
+        }
+    }
+
+    // Only add parent network row if it's different from the single subnet
+    if (!singleRowIsParent) {
+        // Calculate usable IPs for parent
+        let parentUsable = int2ip(usableFirst) + ' - ' + int2ip(usableLast);
+        if (parseInt(netsize) >= 32) {
+            parentUsable = int2ip(usableFirst);
+        }
+
+        // Get address type for parent network
+        let parentType = 'Public';
+        if (isRFC1918(networkInput)) {
+            parentType = 'RFC1918';
+        } else if (isRFC6598(networkInput)) {
+            parentType = 'RFC6598';
+        }
+
+        // Always include all columns
+        let parentRow = [
+            parentNetwork,           // Network Address
+            networkInput,            // IP
+            '/' + netsize,          // CIDR
+            parentNetmask,          // Mask
+            parentType,             // Type
+            parentRange,            // Range
+            parentUsable,           // Usable IPs
+            parentHosts.toString(), // Hosts
+            'Parent Network'        // Note
+        ];
+        tableData.push(parentRow.join('\t'));
+    }
+
+    // Add all subnet rows
+    $('#calcbody tr').each(function() {
+        let row = $(this);
+        let rowData = [];
+
+        // Get subnet address
+        let subnetAddress = row.find('.row_address').text().trim();
+        rowData.push(subnetAddress);
+
+        // Extract IP and CIDR from subnet address if additional columns aren't visible
+        let [ip, cidr] = subnetAddress.split('/');
+
+        // Always add ALL columns
+        rowData.push(row.find('.row_ip').text().trim() || ip); // IP
+        rowData.push(row.find('.row_cidr').text().trim() || '/' + cidr); // CIDR
+        rowData.push(row.find('.row_mask').text().trim() || cidr2mask(parseInt(cidr))); // Mask
+
+        // Get type from the row or calculate it
+        let typeText = row.find('.row_type').text().trim();
+        if (!typeText) {
+            // Calculate if not visible
+            typeText = 'Public';
+            if (isRFC1918(ip)) {
+                typeText = 'RFC1918';
+            } else if (isRFC6598(ip)) {
+                typeText = 'RFC6598';
+            }
+        }
+        rowData.push(typeText); // Type
+
+        rowData.push(row.find('.row_range').text().trim()); // Range
+        rowData.push(row.find('.row_usable').text().trim()); // Usable IPs
+        rowData.push(row.find('.row_hosts').text().trim()); // Hosts
+
+        // Use existing note, or add "Parent Network" if this is the only row and matches parent
+        let note = row.find('.note input').val() || '';
+        if (singleRowIsParent && note === '') {
+            note = 'Parent Network';
+        }
+        rowData.push(note);
+
+        tableData.push(rowData.join('\t'));
+    });
+
+    // Copy to clipboard
+    let textToCopy = tableData.join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            // Show success feedback
+            let btn = $('#copyTable');
+            let originalHtml = btn.html();
+            btn.html('<i class="bi bi-check-circle"></i> Copied!');
+            btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+            setTimeout(function() {
+                btn.html(originalHtml);
+                btn.removeClass('btn-success').addClass('btn-outline-secondary');
+            }, 2000);
+        }).catch(function(err) {
+            show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+            console.error('Failed to copy: ', err);
+        });
+    } else {
+        // Fallback for browsers that don't support clipboard API
+        show_warning_modal('<div class="alert alert-warning">Your browser does not support clipboard access. Please use Ctrl+C/Cmd+C to copy.</div>');
+    }
+})
+
+// Copy Source and Mirror to clipboard functionality
+$('#copySourceAndMirror').on('click', function() {
+    // Get labels and mirror network details from modal inputs
+    let sourceLabel = $('#sourceLabel').val().trim() || 'Blue';
+    let mirrorLabel = $('#mirrorLabel').val().trim() || 'Green';
+    let mirrorBase = $('#mirrorNetwork').val().trim();
+
+    if (!mirrorBase) {
+        alert('Please enter a mirror network base address');
+        return;
+    }
+
+    // Validate IPv4 address format
+    let ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipv4Regex.test(mirrorBase)) {
+        alert('Please enter a valid IPv4 address (e.g., 10.200.0.0)');
+        return;
+    }
+
+    // Get original network info for alignment check
+    let originalSize = parseInt($('#netsize').val());
+
+    // Check that mirror network is properly aligned
+    let mirrorInt = ip2int(mirrorBase);
+    let maskBits = 32 - originalSize;
+    let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+
+    if (mirrorInt !== mirrorAligned) {
+        alert('Mirror network must be aligned to /' + originalSize + ' boundary');
+        return;
+    }
+
+    // Capture current state as source
+    let sourceData = captureTableData();
+
+    // Generate mirror data based on source (pass empty string for label to avoid duplication)
+    let mirrorData = generateMirrorData(sourceData, mirrorBase, '');
+
+    // Build combined table data with label column
+    let tableData = [];
+
+    // Headers with generic Source/Mirror as first column
+    let headers = ['Source/Mirror', 'Network Address', 'IP', 'CIDR', 'Mask', 'Type', 'Range of Addresses', 'Usable IPs', 'Hosts', 'Note'];
+    tableData.push(headers.join('\t'));
+
+    // Add source parent network
+    let sourceParentNetwork = sourceData.network + '/' + sourceData.netsize;
+    let sourceParentNetmask = cidr2mask(parseInt(sourceData.netsize));
+    let addressFirst = ip2int(sourceData.network);
+    let addressLast = subnet_last_address(addressFirst, parseInt(sourceData.netsize));
+    let usableFirst = subnet_usable_first(addressFirst, parseInt(sourceData.netsize), operatingMode);
+    let usableLast = subnet_usable_last(addressFirst, parseInt(sourceData.netsize));
+    let sourceParentHosts = 1 + usableLast - usableFirst;
+    let sourceParentRange = int2ip(addressFirst) + ' - ' + int2ip(addressLast);
+    if (parseInt(sourceData.netsize) >= 32) {
+        sourceParentRange = int2ip(addressFirst);
+    }
+
+    let sourceParentUsable = int2ip(usableFirst) + ' - ' + int2ip(usableLast);
+    if (parseInt(sourceData.netsize) >= 32) {
+        sourceParentUsable = int2ip(usableFirst);
+    }
+
+    // Get address type for source parent network
+    let sourceParentType = 'Public';
+    if (isRFC1918(sourceData.network)) {
+        sourceParentType = 'RFC1918';
+    } else if (isRFC6598(sourceData.network)) {
+        sourceParentType = 'RFC6598';
+    }
+
+    // Add source parent row with actual label
+    let sourceParentRow = [
+        sourceLabel,
+        sourceParentNetwork,
+        sourceData.network,
+        '/' + sourceData.netsize,
+        sourceParentNetmask,
+        sourceParentType,
+        sourceParentRange,
+        sourceParentUsable,
+        sourceParentHosts.toString(),
+        'Parent Network'
+    ];
+    tableData.push(sourceParentRow.join('\t'));
+
+    // Add all source subnet rows
+    sourceData.rows.forEach(function(row) {
+        let rowData = [
+            sourceLabel,
+            row.subnet,
+            row.ip,
+            row.cidr,
+            row.mask,
+            row.type,
+            row.range,
+            row.usable,
+            row.hosts,
+            row.note
+        ];
+        tableData.push(rowData.join('\t'));
+    });
+
+    // Add mirror data
+    // Add mirror parent network
+    let mirrorParentNetwork = mirrorData.network + '/' + mirrorData.netsize;
+    let mirrorParentNetmask = cidr2mask(parseInt(mirrorData.netsize));
+    let mirrorAddressFirst = ip2int(mirrorData.network);
+    let mirrorAddressLast = subnet_last_address(mirrorAddressFirst, parseInt(mirrorData.netsize));
+    let mirrorUsableFirst = subnet_usable_first(mirrorAddressFirst, parseInt(mirrorData.netsize), operatingMode);
+    let mirrorUsableLast = subnet_usable_last(mirrorAddressFirst, parseInt(mirrorData.netsize));
+    let mirrorParentHosts = 1 + mirrorUsableLast - mirrorUsableFirst;
+    let mirrorParentRange = int2ip(mirrorAddressFirst) + ' - ' + int2ip(mirrorAddressLast);
+    if (parseInt(mirrorData.netsize) >= 32) {
+        mirrorParentRange = int2ip(mirrorAddressFirst);
+    }
+
+    let mirrorParentUsable = int2ip(mirrorUsableFirst) + ' - ' + int2ip(mirrorUsableLast);
+    if (parseInt(mirrorData.netsize) >= 32) {
+        mirrorParentUsable = int2ip(mirrorUsableFirst);
+    }
+
+    // Get address type for mirror parent network
+    let mirrorParentType = 'Public';
+    if (isRFC1918(mirrorData.network)) {
+        mirrorParentType = 'RFC1918';
+    } else if (isRFC6598(mirrorData.network)) {
+        mirrorParentType = 'RFC6598';
+    }
+
+    // Add mirror parent row with actual label
+    let mirrorParentRow = [
+        mirrorLabel,
+        mirrorParentNetwork,
+        mirrorData.network,
+        '/' + mirrorData.netsize,
+        mirrorParentNetmask,
+        mirrorParentType,
+        mirrorParentRange,
+        mirrorParentUsable,
+        mirrorParentHosts.toString(),
+        'Parent Network'
+    ];
+    tableData.push(mirrorParentRow.join('\t'));
+
+    // Add all mirror subnet rows
+    mirrorData.rows.forEach(function(row) {
+        let rowData = [
+            mirrorLabel,
+            row.subnet,
+            row.ip,
+            row.cidr,
+            row.mask,
+            row.type,
+            row.range,
+            row.usable,
+            row.hosts,
+            row.note
+        ];
+        tableData.push(rowData.join('\t'));
+    });
+
+    // Join all the data
+    let textData = tableData.join('\n');
+
+    // Copy to clipboard
+    let btn = $(this);
+    let originalHtml = btn.html();
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textData).then(function() {
+            btn.html('<i class="bi bi-check2"></i> Copied!');
+            btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+            // Reset button after 2 seconds
+            setTimeout(function() {
+                btn.html(originalHtml);
+                btn.removeClass('btn-success').addClass('btn-outline-secondary');
+            }, 2000);
+        }).catch(function(err) {
+            show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+            console.error('Failed to copy: ', err);
+        });
+    } else {
+        // Fallback for browsers that don't support clipboard API
+        show_warning_modal('<div class="alert alert-warning">Your browser does not support clipboard access. Please use Ctrl+C/Cmd+C to copy.</div>');
+    }
+});
+
+// Store source allocation data for dual copy
+let sourceAllocationData = null;
+
+
+// Reorder lines in auto-allocation textarea
+$('#moveLineUp').on('click', function() {
+    const textarea = $('#subnetRequests')[0];
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    // Find current line
+    const lines = text.split('\n');
+    let currentLine = 0;
+    let charCount = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        if (charCount + lines[i].length >= start) {
+            currentLine = i;
+            break;
+        }
+        charCount += lines[i].length + 1; // +1 for newline
+    }
+
+    // Move line up if not first line
+    if (currentLine > 0) {
+        const temp = lines[currentLine];
+        lines[currentLine] = lines[currentLine - 1];
+        lines[currentLine - 1] = temp;
+
+        textarea.value = lines.join('\n');
+
+        // Restore cursor position (moved up one line)
+        const newPos = Math.max(0, start - lines[currentLine].length - 1);
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.focus();
+    }
+});
+
+$('#moveLineDown').on('click', function() {
+    const textarea = $('#subnetRequests')[0];
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    // Find current line
+    const lines = text.split('\n');
+    let currentLine = 0;
+    let charCount = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        if (charCount + lines[i].length >= start) {
+            currentLine = i;
+            break;
+        }
+        charCount += lines[i].length + 1; // +1 for newline
+    }
+
+    // Move line down if not last line
+    if (currentLine < lines.length - 1) {
+        const temp = lines[currentLine];
+        lines[currentLine] = lines[currentLine + 1];
+        lines[currentLine + 1] = temp;
+
+        textarea.value = lines.join('\n');
+
+        // Restore cursor position (moved down one line)
+        const newPos = Math.min(text.length, start + lines[currentLine].length + 1);
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.focus();
+    }
+});
+
+// Generate Mirror functionality
+$('#generateMirror').on('click', function() {
+    // Check if there's a network to mirror
+    let networkInput = $('#network').val();
+    let netsize = $('#netsize').val();
+
+    if (!networkInput || !netsize || $('#calcbody tr').length === 0) {
+        show_warning_modal('<div class="alert alert-danger">No network to mirror. Please calculate a network first.</div>');
+        return;
+    }
+
+    // Display source network info in modal
+    $('#sourceNetworkDisplay').text(networkInput + '/' + netsize);
+    $('#mirrorSizeHint').text('Enter the base network for the mirror (must use same CIDR size as original - /' + netsize + ')');
+
+    // Pre-fill the modal with a suggested mirror network
+    let currentBase = networkInput.split('.');
+    if (currentBase.length === 4) {
+        // Try to suggest a mirror by incrementing the second octet
+        let secondOctet = parseInt(currentBase[1]);
+        let suggestedMirror = currentBase[0] + '.' + (secondOctet + 100) + '.0.0';
+        $('#mirrorNetwork').val(suggestedMirror);
+    }
+
+    // Reset validation state and trigger validation on pre-filled value
+    $('#mirrorNetwork').removeClass('is-valid is-invalid');
+
+    // Show the modal
+    let mirrorModal = new bootstrap.Modal(document.getElementById('mirrorModal'));
+    mirrorModal.show();
+
+    // Trigger validation after modal is shown
+    setTimeout(function() {
+        $('#mirrorNetwork').trigger('input');
+    }, 100);
+});
+
+// Confirm mirror generation
+$('#confirmMirror').on('click', function() {
+    let mirrorBase = $('#mirrorNetwork').val().trim();
+    let mirrorLabel = $('#mirrorLabel').val().trim();
+
+    if (!mirrorBase) {
+        alert('Please enter a mirror network base address');
+        return;
+    }
+
+    // Validate IPv4 address format
+    let ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipv4Regex.test(mirrorBase)) {
+        alert('Please enter a valid IPv4 address (e.g., 10.200.0.0)');
+        return;
+    }
+
+    // Get original network info
+    let originalNetwork = $('#network').val();
+    let originalSize = parseInt($('#netsize').val());
+
+    // Check that mirror network has same size available
+    let mirrorInt = ip2int(mirrorBase);
+    let originalInt = ip2int(originalNetwork);
+
+    // Calculate if they're in the same size range
+    let maskBits = 32 - originalSize;
+    let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+
+    if (mirrorInt !== mirrorAligned) {
+        alert('Mirror network must be aligned to /' + originalSize + ' boundary');
+        return;
+    }
+
+    // Close the modal
+    let mirrorModal = bootstrap.Modal.getInstance(document.getElementById('mirrorModal'));
+    mirrorModal.hide();
+
+    // Generate the mirror allocation
+    generateMirrorAllocation(mirrorBase, originalSize, mirrorLabel);
+});
+
+// Function to generate mirror data from source data
+function generateMirrorData(sourceData, mirrorBase, mirrorLabel) {
+    let mirrorData = {
+        network: mirrorBase,
+        netsize: sourceData.netsize,
+        rows: []
+    };
+
+    // Calculate mirror subnets based on source
+    let sourceBaseInt = ip2int(sourceData.network);
+    let mirrorBaseInt = ip2int(mirrorBase);
+
+    sourceData.rows.forEach(function(sourceRow) {
+        let [sourceIp, sourceCidr] = sourceRow.subnet.split('/');
+        let sourceInt = ip2int(sourceIp);
+        let offset = sourceInt - sourceBaseInt;
+        let mirrorInt = mirrorBaseInt + offset;
+        let mirrorIp = int2ip(mirrorInt);
+
+        // Calculate all the subnet details for the mirror
+        let cidr = parseInt(sourceCidr);
+        let addressLast = subnet_last_address(mirrorInt, cidr);
+        let usableFirst = subnet_usable_first(mirrorInt, cidr, operatingMode);
+        let usableLast = subnet_usable_last(mirrorInt, cidr);
+        let hosts = 1 + usableLast - usableFirst;
+
+        let range = int2ip(mirrorInt) + ' - ' + int2ip(addressLast);
+        if (cidr >= 32) {
+            range = int2ip(mirrorInt);
+        }
+
+        let usable = int2ip(usableFirst) + ' - ' + int2ip(usableLast);
+        if (cidr >= 32) {
+            usable = int2ip(usableFirst);
+        }
+
+        // Determine type
+        let type = 'Public';
+        if (isRFC1918(mirrorIp)) {
+            type = 'RFC1918';
+        } else if (isRFC6598(mirrorIp)) {
+            type = 'RFC6598';
+        }
+
+        mirrorData.rows.push({
+            subnet: mirrorIp + '/' + cidr,
+            ip: mirrorIp,
+            cidr: '/' + cidr,
+            mask: cidr2mask(cidr),
+            type: type,
+            range: range,
+            usable: usable,
+            hosts: hosts.toString(),
+            note: sourceRow.note + (mirrorLabel ? ' (' + mirrorLabel + ')' : '')
+        });
+    });
+
+    return mirrorData;
+}
+
+// Function to capture table data for later use
+function captureTableData() {
+    let data = {
+        network: $('#network').val(),
+        netsize: $('#netsize').val(),
+        rows: []
+    };
+
+    $('#calcbody tr').each(function() {
+        let row = $(this);
+        let subnetAddress = row.find('.row_address').text().trim();
+        if (subnetAddress) {
+            data.rows.push({
+                subnet: subnetAddress,
+                ip: row.find('.row_ip').text().trim(),
+                cidr: row.find('.row_cidr').text().trim(),
+                mask: row.find('.row_mask').text().trim(),
+                type: row.find('.row_type').text().trim(),
+                range: row.find('.row_range').text().trim(),
+                usable: row.find('.row_usable').text().trim(),
+                hosts: row.find('.row_hosts').text().trim(),
+                note: row.find('.note input').val() || ''
+            });
+        }
+    });
+
+    return data;
+}
+
+function generateMirrorAllocation(mirrorBase, netSize, label) {
+    // Store source allocation data before replacing
+    sourceAllocationData = captureTableData();
+
+    // Collect all existing subnets with their sizes
+    let subnets = [];
+    $('#calcbody tr').each(function() {
+        let subnetAddress = $(this).find('.row_address').text().trim();
+        if (subnetAddress) {
+            let [ip, cidr] = subnetAddress.split('/');
+            let note = $(this).find('.note input').val() || '';
+            subnets.push({
+                originalIp: ip,
+                cidr: parseInt(cidr),
+                note: note
+            });
+        }
+    });
+
+    if (subnets.length === 0) {
+        show_warning_modal('<div class="alert alert-danger">No subnets found to mirror.</div>');
+        return;
+    }
+
+    // Calculate mirror subnets
+    let mirrorSubnets = [];
+    let originalBase = ip2int($('#network').val());
+    let mirrorBaseInt = ip2int(mirrorBase);
+
+    subnets.forEach(subnet => {
+        let originalInt = ip2int(subnet.originalIp);
+        let offset = originalInt - originalBase;
+        let mirrorInt = mirrorBaseInt + offset;
+        let mirrorIp = int2ip(mirrorInt);
+
+        mirrorSubnets.push({
+            network: mirrorIp + '/' + subnet.cidr,
+            note: subnet.note + (label ? ' (' + label + ')' : ' (Mirror)')
+        });
+    });
+
+    // Create allocation text for auto-allocation
+    let allocationText = mirrorSubnets.map(s => s.network + ',' + s.note).join('\n');
+
+    // Clear current table and run auto-allocation with mirror
+    $('#network').val(mirrorBase);
+    $('#netsize').val(netSize);
+    $('#autoAllocateInput').val(allocationText);
+
+    // Trigger calculation
+    $('#btn_go').click();
+
+    // After a short delay, trigger auto-allocation
+    setTimeout(function() {
+        $('#autoAllocate').click();
+    }, 500);
+}
+
+// Keyboard navigation for notes field
+$('#calcbody').on('keydown', '.note input', function(e) {
+    let currentRow = $(this).closest('tr');
+    let allRows = $('#calcbody tr');
+    let currentIndex = allRows.index(currentRow);
+
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Tab') {
+        e.preventDefault();
+
+        let nextIndex;
+        if (e.key === 'ArrowUp') {
+            nextIndex = currentIndex - 1;
+        } else { // ArrowDown or Tab
+            nextIndex = currentIndex + 1;
+        }
+
+        if (nextIndex >= 0 && nextIndex < allRows.length) {
+            let nextInput = allRows.eq(nextIndex).find('.note input');
+            if (nextInput.length) {
+                nextInput.focus();
+                // Select all text in the input for easy replacement
+                nextInput.select();
+            }
+        }
+    }
 })
 
 function reset() {
@@ -303,6 +1018,19 @@ function addRow(network, netSize, colspan, note, notesWidth, color, operatingMod
     let usableFirst = subnet_usable_first(addressFirst, netSize, operatingMode)
     let usableLast = subnet_usable_last(addressFirst, netSize)
     let hostCount = 1 + usableLast - usableFirst
+
+    // Determine address type for Type column
+    let addressType = getAddressType(network);
+    let addressTypeDisplay = 'Public';
+    let rowClass = '';
+    if (addressType === 'rfc1918') {
+        addressTypeDisplay = 'RFC1918';
+        rowClass = ' class="rfc1918-row"';
+    } else if (addressType === 'rfc6598') {
+        addressTypeDisplay = 'RFC6598';
+        rowClass = ' class="rfc6598-row"';
+    }
+
     let styleTag = ''
     if (color !== '') {
         styleTag = ' style="background-color: ' + color + '"'
@@ -318,9 +1046,15 @@ function addRow(network, netSize, colspan, note, notesWidth, color, operatingMod
     }
     let rowId = 'row_' + network.replace('.', '-') + '_' + netSize
     let rowCIDR = network + '/' + netSize
+    let subnetMask = cidr2mask(netSize)
+    let additionalDisplay = additionalColumnsVisible ? '' : ' style="display: none;"'
     let newRow =
-        '            <tr id="' + rowId + '"' + styleTag + '  aria-label="' + rowCIDR + '">\n' +
+        '            <tr id="' + rowId + '"' + styleTag + rowClass + '  aria-label="' + rowCIDR + '">\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address">' + rowCIDR + '</td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' ipHeader" class="row_ip additional-column"' + additionalDisplay + '>' + network + '</td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' cidrHeader" class="row_cidr additional-column"' + additionalDisplay + '>/' + netSize + '</td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' maskHeader" class="row_mask additional-column"' + additionalDisplay + '>' + subnetMask + '</td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' typeHeader" class="row_type additional-column"' + additionalDisplay + '>' + addressTypeDisplay + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' rangeHeader" class="row_range">' + rangeCol + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' useableHeader" class="row_usable">' + usableCol + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' hostsHeader" class="row_hosts">' + hostCount + '</td>\n' +
@@ -353,6 +1087,43 @@ function ip2int(ip) {
 function int2ip (ipInt) {
     return ((ipInt>>>24) + '.' + (ipInt>>16 & 255) + '.' + (ipInt>>8 & 255) + '.' + (ipInt & 255));
 }
+
+function cidr2mask(cidr) {
+    let mask = 0xFFFFFFFF << (32 - cidr);
+    return int2ip(mask >>> 0);
+}
+
+// Check if an IP address is in RFC1918 private address space
+function isRFC1918(ip) {
+    const ipInt = typeof ip === 'string' ? ip2int(ip) : ip;
+
+    // 10.0.0.0/8 (10.0.0.0 - 10.255.255.255)
+    if (ipInt >= 0x0A000000 && ipInt <= 0x0AFFFFFF) return true;
+
+    // 172.16.0.0/12 (172.16.0.0 - 172.31.255.255)
+    if (ipInt >= 0xAC100000 && ipInt <= 0xAC1FFFFF) return true;
+
+    // 192.168.0.0/16 (192.168.0.0 - 192.168.255.255)
+    if (ipInt >= 0xC0A80000 && ipInt <= 0xC0A8FFFF) return true;
+
+    return false;
+}
+
+// Check if an IP address is in RFC6598 shared address space (CGNAT)
+function isRFC6598(ip) {
+    const ipInt = typeof ip === 'string' ? ip2int(ip) : ip;
+
+    // 100.64.0.0/10 (100.64.0.0 - 100.127.255.255)
+    return ipInt >= 0x64400000 && ipInt <= 0x647FFFFF;
+}
+
+// Get the address type for display
+function getAddressType(ip) {
+    if (isRFC1918(ip)) return 'rfc1918';
+    if (isRFC6598(ip)) return 'rfc6598';
+    return 'public';
+}
+
 
 function toBase36(num) {
     return num.toString(36);
@@ -1153,6 +1924,70 @@ function calculateReservedSpace(baseNetwork, baseNetSize, reserveSize) {
     return baseAddr + totalAddresses - reserveAddresses;
 }
 
+function consolidateSpareSubnets(requests) {
+    // Consolidate consecutive (spare) entries into larger blocks
+    if (!requests || requests.length === 0) return requests;
+
+    const consolidated = [];
+    let i = 0;
+
+    while (i < requests.length) {
+        if (requests[i].name === '(spare)') {
+            // Count consecutive spare subnets of the same size
+            let consecutiveCount = 1;
+            const currentSize = requests[i].size;
+
+            // Look ahead for consecutive spares of the same size
+            while (i + consecutiveCount < requests.length &&
+                   requests[i + consecutiveCount].name === '(spare)' &&
+                   requests[i + consecutiveCount].size === currentSize) {
+                consecutiveCount++;
+            }
+
+            // If we have pairs of the same size, consolidate them
+            if (consecutiveCount >= 2) {
+                // Calculate how many pairs we can make
+                const pairs = Math.floor(consecutiveCount / 2);
+                const remainder = consecutiveCount % 2;
+
+                // Add consolidated pairs (two /N become one /(N-1))
+                for (let j = 0; j < pairs; j++) {
+                    consolidated.push({
+                        name: '(spare)',
+                        size: currentSize - 1
+                    });
+                }
+
+                // If there's an odd one left, keep it
+                if (remainder === 1) {
+                    consolidated.push({
+                        name: '(spare)',
+                        size: currentSize
+                    });
+                }
+
+                // Skip all the spares we just processed
+                i += consecutiveCount;
+            } else {
+                // Single spare, just add it
+                consolidated.push(requests[i]);
+                i++;
+            }
+        } else {
+            // Not a spare, just add it
+            consolidated.push(requests[i]);
+            i++;
+        }
+    }
+
+    // Recursively consolidate if we made any changes
+    if (consolidated.length < requests.length) {
+        return consolidateSpareSubnets(consolidated);
+    }
+
+    return consolidated;
+}
+
 function parseSubnetRequests(requestText, sortOrder = 'preserve') {
     // Parse the subnet requests from the textarea
     const lines = requestText.trim().split('\n');
@@ -1203,6 +2038,7 @@ function parseSubnetRequests(requestText, sortOrder = 'preserve') {
             break;
     }
 
+    // Don't consolidate here - this is for user requests, not allocations with spare subnets
     return requests;
 }
 
@@ -1255,15 +2091,16 @@ $('#btn_auto_allocate').on('click', function() {
 
     // Wait a moment for the reset to complete
     setTimeout(function() {
-        let rootNetwork = get_network(baseNetwork, baseNetSize);
-        let rootCidr = `${rootNetwork}/${baseNetSize}`;
+        try {
+            let rootNetwork = get_network(baseNetwork, baseNetSize);
+            let rootCidr = `${rootNetwork}/${baseNetSize}`;
 
         // Calculate available space
         let currentAddrInt = ip2int(rootNetwork);
         let endAddr = currentAddrInt + Math.pow(2, 32 - baseNetSize);
 
         // Allocate subnets
-        const allocations = [];
+        let allocations = [];
         let allocationErrors = [];
 
         // alignToSize is already parsed and validated above
@@ -1290,7 +2127,30 @@ $('#btn_auto_allocate').on('click', function() {
             // Ensure proper alignment
             if (!isValidSubnetAlignment(int2ip(currentAddrInt), effectiveAlignSize)) {
                 const alignedAddr = getNextAlignedSubnet(int2ip(currentAddrInt), effectiveAlignSize, effectiveAlignSize);
-                currentAddrInt = ip2int(alignedAddr);
+                const alignedAddrInt = ip2int(alignedAddr);
+
+                // If there's a gap due to alignment, create a spare subnet
+                if (alignedAddrInt > currentAddrInt) {
+                    // Calculate the size of the gap
+                    const gapSize = alignedAddrInt - currentAddrInt;
+                    // Find the appropriate CIDR for this gap
+                    let gapCidr = 32;
+                    for (let cidr = 1; cidr <= 32; cidr++) {
+                        if (Math.pow(2, 32 - cidr) === gapSize) {
+                            gapCidr = cidr;
+                            break;
+                        }
+                    }
+
+                    allocations.push({
+                        name: '(spare)',
+                        network: int2ip(currentAddrInt),
+                        size: gapCidr,
+                        cidr: `${int2ip(currentAddrInt)}/${gapCidr}`
+                    });
+                }
+
+                currentAddrInt = alignedAddrInt;
             }
 
             // Check if we have enough space
@@ -1315,10 +2175,93 @@ $('#btn_auto_allocate').on('click', function() {
             const currentIndex = allocations.length - 1; // We just pushed this allocation
             if (paddingSize && currentIndex < subnetRequests.length - 1) {
                 const paddingBlockSize = Math.pow(2, 32 - paddingSize);
-                // Simply add the padding block
+
+                // Create a spare subnet for the padding
+                allocations.push({
+                    name: '(spare)',
+                    network: int2ip(currentAddrInt),
+                    size: paddingSize,
+                    cidr: `${int2ip(currentAddrInt)}/${paddingSize}`
+                });
+
+                // Add the padding block
                 currentAddrInt += paddingBlockSize;
             }
         }
+
+        // Consolidate consecutive spare allocations
+        function consolidateAllocations(allocs) {
+            const consolidated = [];
+            let i = 0;
+
+            while (i < allocs.length) {
+                if (allocs[i].name === '(spare)') {
+                    // Collect consecutive spare allocations with same size that are adjacent
+                    const spares = [allocs[i]];
+                    let j = i + 1;
+
+                    // Look for consecutive spares
+                    while (j < allocs.length && allocs[j].name === '(spare)') {
+                        const prevEnd = ip2int(spares[spares.length - 1].network) +
+                                       Math.pow(2, 32 - spares[spares.length - 1].size);
+                        const currentStart = ip2int(allocs[j].network);
+
+                        // Check if adjacent and same size
+                        if (prevEnd === currentStart && allocs[j].size === spares[0].size) {
+                            spares.push(allocs[j]);
+                            j++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // If we have pairs of same-sized adjacent spares, consolidate them
+                    if (spares.length >= 2 && spares.every(s => s.size === spares[0].size)) {
+                        const baseAddr = ip2int(spares[0].network);
+                        const size = spares[0].size;
+                        let remaining = spares.length;
+                        let currentAddr = baseAddr;
+
+                        // Consolidate pairs into larger blocks
+                        while (remaining >= 2) {
+                            consolidated.push({
+                                name: '(spare)',
+                                network: int2ip(currentAddr),
+                                size: size - 1,
+                                cidr: `${int2ip(currentAddr)}/${size - 1}`
+                            });
+                            currentAddr += Math.pow(2, 32 - (size - 1));
+                            remaining -= 2;
+                        }
+
+                        // Add any remaining odd spare
+                        if (remaining === 1) {
+                            consolidated.push({
+                                name: '(spare)',
+                                network: int2ip(currentAddr),
+                                size: size,
+                                cidr: `${int2ip(currentAddr)}/${size}`
+                            });
+                        }
+
+                        i = j;
+                    } else {
+                        // Can't consolidate, just add the first spare
+                        consolidated.push(allocs[i]);
+                        i++;
+                    }
+                } else {
+                    // Not a spare, add as-is
+                    consolidated.push(allocs[i]);
+                    i++;
+                }
+            }
+
+            return consolidated;
+        }
+
+        // Apply consolidation to allocations
+        allocations = consolidateAllocations(allocations);
 
         // Display results
         let resultsHtml = '';
@@ -1389,6 +2332,13 @@ $('#btn_auto_allocate').on('click', function() {
             // Re-render the table
             renderTable(operatingMode);
 
+            // Update the subnet requests textarea with the complete allocation including spare subnets
+            let updatedRequests = [];
+            for (const alloc of allocations) {
+                updatedRequests.push(`${alloc.name} /${alloc.size}`);
+            }
+            $('#subnetRequests').val(updatedRequests.join('\n'));
+
             // Now add the notes to the correct subnets
             // We need to do this AFTER rendering to ensure all subnets exist
             setTimeout(function() {
@@ -1422,6 +2372,10 @@ $('#btn_auto_allocate').on('click', function() {
         }
 
         $('#allocation_results').html(resultsHtml);
+        } catch (error) {
+            console.error('Auto-allocation error:', error);
+            $('#allocation_results').html('<div class="alert alert-danger">An error occurred during allocation: ' + error.message + '</div>');
+        }
     }, 100);
 });
 
