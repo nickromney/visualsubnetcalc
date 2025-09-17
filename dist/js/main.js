@@ -1924,69 +1924,6 @@ function calculateReservedSpace(baseNetwork, baseNetSize, reserveSize) {
     return baseAddr + totalAddresses - reserveAddresses;
 }
 
-function consolidateSpareSubnets(requests) {
-    // Consolidate consecutive (spare) entries into larger blocks
-    if (!requests || requests.length === 0) return requests;
-
-    const consolidated = [];
-    let i = 0;
-
-    while (i < requests.length) {
-        if (requests[i].name === '(spare)') {
-            // Count consecutive spare subnets of the same size
-            let consecutiveCount = 1;
-            const currentSize = requests[i].size;
-
-            // Look ahead for consecutive spares of the same size
-            while (i + consecutiveCount < requests.length &&
-                   requests[i + consecutiveCount].name === '(spare)' &&
-                   requests[i + consecutiveCount].size === currentSize) {
-                consecutiveCount++;
-            }
-
-            // If we have pairs of the same size, consolidate them
-            if (consecutiveCount >= 2) {
-                // Calculate how many pairs we can make
-                const pairs = Math.floor(consecutiveCount / 2);
-                const remainder = consecutiveCount % 2;
-
-                // Add consolidated pairs (two /N become one /(N-1))
-                for (let j = 0; j < pairs; j++) {
-                    consolidated.push({
-                        name: '(spare)',
-                        size: currentSize - 1
-                    });
-                }
-
-                // If there's an odd one left, keep it
-                if (remainder === 1) {
-                    consolidated.push({
-                        name: '(spare)',
-                        size: currentSize
-                    });
-                }
-
-                // Skip all the spares we just processed
-                i += consecutiveCount;
-            } else {
-                // Single spare, just add it
-                consolidated.push(requests[i]);
-                i++;
-            }
-        } else {
-            // Not a spare, just add it
-            consolidated.push(requests[i]);
-            i++;
-        }
-    }
-
-    // Recursively consolidate if we made any changes
-    if (consolidated.length < requests.length) {
-        return consolidateSpareSubnets(consolidated);
-    }
-
-    return consolidated;
-}
 
 function parseSubnetRequests(requestText, sortOrder = 'preserve') {
     // Parse the subnet requests from the textarea
@@ -2106,7 +2043,8 @@ $('#btn_auto_allocate').on('click', function() {
         // alignToSize is already parsed and validated above
         const alignmentSize = alignToSize;
 
-        for (const request of subnetRequests) {
+        for (let requestIndex = 0; requestIndex < subnetRequests.length; requestIndex++) {
+            const request = subnetRequests[requestIndex];
             // Determine alignment size based on settings
             let effectiveAlignSize = request.size; // Default to natural alignment
 
@@ -2124,30 +2062,41 @@ $('#btn_auto_allocate').on('click', function() {
                 }
             }
 
-            // Ensure proper alignment
+            // For the first subnet or after handling padding/alignment, ensure we're properly aligned
+            // This handles the case where the current position isn't aligned for this subnet
             if (!isValidSubnetAlignment(int2ip(currentAddrInt), effectiveAlignSize)) {
                 const alignedAddr = getNextAlignedSubnet(int2ip(currentAddrInt), effectiveAlignSize, effectiveAlignSize);
                 const alignedAddrInt = ip2int(alignedAddr);
 
-                // If there's a gap due to alignment, create a spare subnet
+                // If there's a gap due to alignment, fill it with spare subnets
                 if (alignedAddrInt > currentAddrInt) {
-                    // Calculate the size of the gap
-                    const gapSize = alignedAddrInt - currentAddrInt;
-                    // Find the appropriate CIDR for this gap
-                    let gapCidr = 32;
-                    for (let cidr = 1; cidr <= 32; cidr++) {
-                        if (Math.pow(2, 32 - cidr) === gapSize) {
-                            gapCidr = cidr;
-                            break;
-                        }
-                    }
+                    // Fill the gap with properly-sized spare subnets
+                    let gapStart = currentAddrInt;
 
-                    allocations.push({
-                        name: '(spare)',
-                        network: int2ip(currentAddrInt),
-                        size: gapCidr,
-                        cidr: `${int2ip(currentAddrInt)}/${gapCidr}`
-                    });
+                    while (gapStart < alignedAddrInt) {
+                        // Find the largest power-of-2 aligned subnet that fits in the remaining gap
+                        let maxSize = 32;
+
+                        // Check alignment - the subnet must be aligned to its size
+                        for (let testSize = 1; testSize <= 32; testSize++) {
+                            const blockSize = Math.pow(2, 32 - testSize);
+                            // Check if this size would fit and is properly aligned
+                            if (gapStart % blockSize === 0 && gapStart + blockSize <= alignedAddrInt) {
+                                maxSize = testSize;
+                                break;
+                            }
+                        }
+
+                        const blockSize = Math.pow(2, 32 - maxSize);
+                        allocations.push({
+                            name: '(spare)',
+                            network: int2ip(gapStart),
+                            size: maxSize,
+                            cidr: `${int2ip(gapStart)}/${maxSize}`
+                        });
+
+                        gapStart += blockSize;
+                    }
                 }
 
                 currentAddrInt = alignedAddrInt;
@@ -2171,97 +2120,71 @@ $('#btn_auto_allocate').on('click', function() {
             // Move to next available address
             currentAddrInt += subnetSize;
 
-            // Add padding after this subnet if requested (except for the last subnet)
-            const currentIndex = allocations.length - 1; // We just pushed this allocation
-            if (paddingSize && currentIndex < subnetRequests.length - 1) {
-                const paddingBlockSize = Math.pow(2, 32 - paddingSize);
+            // Handle padding and alignment for the next subnet (except after the last subnet)
+            if (requestIndex < subnetRequests.length - 1) {
+                const nextRequest = subnetRequests[requestIndex + 1];
+                let nextEffectiveAlignSize = nextRequest.size; // Default alignment
 
-                // Create a spare subnet for the padding
-                allocations.push({
-                    name: '(spare)',
-                    network: int2ip(currentAddrInt),
-                    size: paddingSize,
-                    cidr: `${int2ip(currentAddrInt)}/${paddingSize}`
-                });
-
-                // Add the padding block
-                currentAddrInt += paddingBlockSize;
-            }
-        }
-
-        // Consolidate consecutive spare allocations
-        function consolidateAllocations(allocs) {
-            const consolidated = [];
-            let i = 0;
-
-            while (i < allocs.length) {
-                if (allocs[i].name === '(spare)') {
-                    // Collect consecutive spare allocations with same size that are adjacent
-                    const spares = [allocs[i]];
-                    let j = i + 1;
-
-                    // Look for consecutive spares
-                    while (j < allocs.length && allocs[j].name === '(spare)') {
-                        const prevEnd = ip2int(spares[spares.length - 1].network) +
-                                       Math.pow(2, 32 - spares[spares.length - 1].size);
-                        const currentStart = ip2int(allocs[j].network);
-
-                        // Check if adjacent and same size
-                        if (prevEnd === currentStart && allocs[j].size === spares[0].size) {
-                            spares.push(allocs[j]);
-                            j++;
-                        } else {
-                            break;
+                // Determine alignment for the next subnet
+                if (alignmentSize) {
+                    if (alignLargeOnly) {
+                        if (nextRequest.size <= alignmentSize) {
+                            nextEffectiveAlignSize = alignmentSize;
                         }
-                    }
-
-                    // If we have pairs of same-sized adjacent spares, consolidate them
-                    if (spares.length >= 2 && spares.every(s => s.size === spares[0].size)) {
-                        const baseAddr = ip2int(spares[0].network);
-                        const size = spares[0].size;
-                        let remaining = spares.length;
-                        let currentAddr = baseAddr;
-
-                        // Consolidate pairs into larger blocks
-                        while (remaining >= 2) {
-                            consolidated.push({
-                                name: '(spare)',
-                                network: int2ip(currentAddr),
-                                size: size - 1,
-                                cidr: `${int2ip(currentAddr)}/${size - 1}`
-                            });
-                            currentAddr += Math.pow(2, 32 - (size - 1));
-                            remaining -= 2;
-                        }
-
-                        // Add any remaining odd spare
-                        if (remaining === 1) {
-                            consolidated.push({
-                                name: '(spare)',
-                                network: int2ip(currentAddr),
-                                size: size,
-                                cidr: `${int2ip(currentAddr)}/${size}`
-                            });
-                        }
-
-                        i = j;
                     } else {
-                        // Can't consolidate, just add the first spare
-                        consolidated.push(allocs[i]);
-                        i++;
+                        nextEffectiveAlignSize = alignmentSize;
                     }
-                } else {
-                    // Not a spare, add as-is
-                    consolidated.push(allocs[i]);
-                    i++;
+                }
+
+                // Calculate where we need to be for the next subnet
+                let targetAddr = currentAddrInt;
+
+                // Add padding if requested
+                if (paddingSize) {
+                    const paddingBlockSize = Math.pow(2, 32 - paddingSize);
+                    targetAddr += paddingBlockSize;
+                }
+
+                // Align to the next subnet's boundary
+                if (!isValidSubnetAlignment(int2ip(targetAddr), nextEffectiveAlignSize)) {
+                    const alignedAddr = getNextAlignedSubnet(int2ip(targetAddr), nextEffectiveAlignSize, nextEffectiveAlignSize);
+                    targetAddr = ip2int(alignedAddr);
+                }
+
+                // Create spare block(s) to fill the gap from current position to target
+                if (targetAddr > currentAddrInt) {
+                    let gapStart = currentAddrInt;
+
+                    while (gapStart < targetAddr) {
+                        // Find the largest properly-aligned subnet that fits
+                        let bestSize = 32;
+
+                        for (let testSize = 1; testSize <= 32; testSize++) {
+                            const blockSize = Math.pow(2, 32 - testSize);
+                            // Check if aligned and fits
+                            if (gapStart % blockSize === 0 && gapStart + blockSize <= targetAddr) {
+                                bestSize = testSize;
+                                break;
+                            }
+                        }
+
+                        const blockSize = Math.pow(2, 32 - bestSize);
+                        allocations.push({
+                            name: '(spare)',
+                            network: int2ip(gapStart),
+                            size: bestSize,
+                            cidr: `${int2ip(gapStart)}/${bestSize}`
+                        });
+
+                        gapStart += blockSize;
+                    }
+
+                    currentAddrInt = targetAddr;
                 }
             }
-
-            return consolidated;
         }
 
-        // Apply consolidation to allocations
-        allocations = consolidateAllocations(allocations);
+        // Don't consolidate spare allocations - keep them as intended for padding
 
         // Display results
         let resultsHtml = '';
@@ -2332,12 +2255,8 @@ $('#btn_auto_allocate').on('click', function() {
             // Re-render the table
             renderTable(operatingMode);
 
-            // Update the subnet requests textarea with the complete allocation including spare subnets
-            let updatedRequests = [];
-            for (const alloc of allocations) {
-                updatedRequests.push(`${alloc.name} /${alloc.size}`);
-            }
-            $('#subnetRequests').val(updatedRequests.join('\n'));
+            // Don't update the textarea - keep the original user requests
+            // This prevents spare subnets from being treated as requests on subsequent clicks
 
             // Now add the notes to the correct subnets
             // We need to do this AFTER rendering to ensure all subnets exist

@@ -113,7 +113,7 @@ db-tier /27`;
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
     await expect(page.locator('#allocation_results')).toContainText('web-tier: 10.0.0.0/26');
     await expect(page.locator('#allocation_results')).toContainText('app-tier: 10.0.0.128/26'); // After /28 padding, aligned to /26
-    await expect(page.locator('#allocation_results')).toContainText('db-tier: 10.0.0.224/27'); // After /28 padding, aligned to /27
+    await expect(page.locator('#allocation_results')).toContainText('db-tier: 10.0.0.192/27'); // After alignment gap
 
     // Verify no duplicates
     const notes = await page.locator('input[data-subnet]').evaluateAll(inputs =>
