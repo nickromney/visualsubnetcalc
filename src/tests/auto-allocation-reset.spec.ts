@@ -43,9 +43,9 @@ aks-apps /24`;
     // Check first allocation succeeded
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
 
-    // Count subnets with notes - should be 5
+    // Count subnets with notes (excluding spare) - should be 5
     let notedSubnets = await page.locator('input[data-subnet]').evaluateAll(inputs =>
-      inputs.filter(input => input.value && input.value.trim() !== '').length
+      inputs.filter(input => input.value && input.value.trim() !== '' && !input.value.includes('(spare)')).length
     );
     expect(notedSubnets).toBe(5);
 
@@ -57,9 +57,9 @@ aks-apps /24`;
     // Check second allocation succeeded
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
 
-    // Count subnets with notes again - should still be 5, not duplicates
+    // Count subnets with notes again (excluding spare) - should still be 5, not duplicates
     notedSubnets = await page.locator('input[data-subnet]').evaluateAll(inputs =>
-      inputs.filter(input => input.value && input.value.trim() !== '').length
+      inputs.filter(input => input.value && input.value.trim() !== '' && !input.value.includes('(spare)')).length
     );
     expect(notedSubnets).toBe(5);
 
@@ -158,9 +158,9 @@ aks-apps /24`;
       await page.click('#btn_auto_allocate');
       await page.waitForTimeout(1000);
 
-      // Count allocated subnets - should always be 3
+      // Count allocated subnets (excluding spare) - should always be 3
       const count = await page.locator('input[data-subnet]').evaluateAll(inputs =>
-        inputs.filter(input => input.value && input.value.trim() !== '').length
+        inputs.filter(input => input.value && input.value.trim() !== '' && !input.value.includes('(spare)')).length
       );
       expect(count).toBe(3);
 

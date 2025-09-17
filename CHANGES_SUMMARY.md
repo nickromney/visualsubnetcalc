@@ -1,11 +1,13 @@
 # Code Changes Summary
 
 ## Overview
+
 The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since commit 7b26b90. While this adds significant functionality, there are opportunities for optimization.
 
 ## Features Added
 
 ### 1. Additional Columns Feature (~200 lines)
+
 - **IP Column**: Shows first IP address
 - **CIDR Column**: Shows CIDR notation
 - **Mask Column**: Shows subnet mask in dotted decimal
@@ -13,27 +15,32 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 - Toggle functionality with "Show/Hide Additional Columns" button
 
 ### 2. Keyboard Navigation (~50 lines)
+
 - Arrow keys for navigating between note fields
 - Tab key for next row navigation
 - Event handlers for keydown events
 
 ### 3. RFC Address Detection (~100 lines)
+
 - `isRFC1918()`: Detects private addresses
 - `isRFC6598()`: Detects shared address space
 - `getAddressType()`: Returns classification
 
 ### 4. Copy Table Enhancement (~150 lines)
+
 - `copyTableToClipboard()`: Enhanced with all columns
 - Includes parent network information
 - Excel/Confluence-friendly formatting
 
 ### 5. Mirror Network Generation (~300 lines)
+
 - `generateMirrorData()`: Creates mirror without modifying view
 - `generateMirrorAllocation()`: Replaces with mirror network
 - `captureTableData()`: Preserves source state
 - Modal UI with validation
 
 ### 6. Auto-Allocation Improvements (~400 lines)
+
 - Sort options (preserve/alphabetical/optimal)
 - Alignment boundaries with selective application
 - Smart padding with look-ahead logic
@@ -42,11 +49,13 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 - `getNextAlignedSubnet()`: Alignment calculation
 
 ### 7. Network Analysis (~150 lines)
+
 - Gap detection between subnets
 - Utilization percentage calculation
 - Alignment validation
 
 ### 8. Print Styles (~100 lines)
+
 - Hide UI elements for printing
 - Format table for paper output
 - URL footer for reference
@@ -54,6 +63,7 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 ## Code Bloat Analysis
 
 ### Areas of Concern
+
 1. **Duplicate Logic**: Some validation and calculation logic is repeated
 2. **Long Functions**: Several functions exceed 100 lines
 3. **Inline Styles**: Some styling could be moved to CSS
@@ -82,6 +92,7 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 ## Testing Status
 
 ### Passing Tests
+
 - Auto-allocation basic functionality
 - Network analysis
 - Mirror network generation
@@ -89,6 +100,7 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 - RFC address detection
 
 ### Failing Tests
+
 - Additional columns visibility toggle (3 tests)
 - Auto-allocation with specific padding scenarios (8 tests)
 - Various timeout issues in complex scenarios
@@ -96,17 +108,20 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 ## Recommendations
 
 ### Immediate Actions
+
 1. Fix failing tests (especially additional columns)
 2. Remove debug console.log statements
 3. Extract duplicate validation logic
 
 ### Future Improvements
+
 1. Consider code splitting for features
 2. Implement lazy loading for advanced features
 3. Move to TypeScript for better type safety
 4. Add JSDoc comments for better documentation
 
 ### Performance Considerations
+
 - Current code performs well for typical use cases (<100 subnets)
 - Large networks (>500 subnets) might see performance degradation
 - Consider virtual scrolling for very large tables
@@ -114,6 +129,7 @@ The codebase has grown from 1,019 lines to 2,410 lines (136% increase) since com
 ## Conclusion
 
 While the code has grown significantly, the added features provide substantial value:
+
 - Better UX with keyboard navigation
 - Enterprise features (mirror networks, RFC detection)
 - Improved allocation algorithms
@@ -123,7 +139,7 @@ The bloat is manageable and mostly justified by the feature additions. However, 
 
 ## Code Size Breakdown
 
-```
+```text
 Original (v1.4.0):     1,019 lines
 Current:               2,410 lines
 Growth:                1,391 lines (136% increase)

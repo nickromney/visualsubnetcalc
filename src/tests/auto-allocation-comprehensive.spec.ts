@@ -113,13 +113,13 @@ db-tier /27`;
     await expect(page.locator('#allocation_results .alert-success')).toBeVisible();
     await expect(page.locator('#allocation_results')).toContainText('web-tier: 10.0.0.0/26');
     await expect(page.locator('#allocation_results')).toContainText('app-tier: 10.0.0.128/26'); // After /28 padding, aligned to /26
-    await expect(page.locator('#allocation_results')).toContainText('db-tier: 10.0.0.192/27'); // After alignment gap
+    await expect(page.locator('#allocation_results')).toContainText('db-tier: 10.0.0.224/27'); // After /28 padding from app-tier
 
-    // Verify no duplicates
+    // Verify no duplicates (excluding spare subnets which can have multiple entries)
     const notes = await page.locator('input[data-subnet]').evaluateAll(inputs =>
       inputs
         .map(input => input.value)
-        .filter(v => v && v.trim() !== '')
+        .filter(v => v && v.trim() !== '' && !v.includes('(spare)'))
     );
 
     const uniqueNotes = [...new Set(notes)];

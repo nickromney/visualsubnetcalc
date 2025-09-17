@@ -14,6 +14,10 @@ test.describe('Auto-Allocation Feature', () => {
     // Check that the auto-allocation helper is visible
     await expect(page.locator('.card-header:has-text("Auto-Allocation Helper")')).toBeVisible();
 
+    // Expand the auto-allocation panel to check its contents
+    await page.click('[data-bs-target="#autoAllocationBody"]');
+    await page.waitForSelector('#autoAllocationBody.show');
+
     // Check for input fields
     await expect(page.locator('#reserveSpace')).toBeVisible();
     await expect(page.locator('#futureSubnetSize')).toBeVisible();
@@ -82,6 +86,14 @@ test.describe('Auto-Allocation Feature', () => {
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
 
+    // Expand the auto-allocation panel
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
+
     // Click analyze network
     await page.click('#btn_validate_alignment');
 
@@ -98,6 +110,14 @@ test.describe('Auto-Allocation Feature', () => {
 
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
+
+    // Expand the auto-allocation panel
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
 
     // Try to allocate subnets that won't fit
     await page.fill('#subnetRequests', 'subnet1 /24\nsubnet2 /25');
@@ -121,6 +141,14 @@ test.describe('Auto-Allocation Feature', () => {
 
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
+
+    // Expand the auto-allocation panel
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
 
     // Set padding between subnets
     await page.fill('#reserveSpace', '/28');
@@ -153,6 +181,14 @@ test.describe('Auto-Allocation Feature', () => {
 
     // Wait for the table to render
     await page.waitForSelector('#calcbody tr');
+
+    // Expand the auto-allocation panel
+    const autoAllocationBody = await page.$('#autoAllocationBody');
+    const isCollapsed = await autoAllocationBody?.evaluate(el => el.classList.contains('collapse') && !el.classList.contains('show'));
+    if (isCollapsed) {
+      await page.click('[data-bs-target="#autoAllocationBody"]');
+      await page.waitForSelector('#autoAllocationBody.show');
+    }
 
     // The auto-allocation should never create invalid ranges like 10.96.64.80/27
     await page.fill('#subnetRequests', 'test1 /24\ntest2 /27\ntest3 /27');

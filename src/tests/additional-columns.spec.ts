@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Additional Columns Feature', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:8082');
+        await page.goto('http://localhost:8080');
         await page.waitForLoadState('networkidle');
     });
 
