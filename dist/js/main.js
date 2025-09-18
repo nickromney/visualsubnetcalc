@@ -86,7 +86,7 @@ $('#mirrorNetwork').on('input', function() {
         let originalSize = parseInt($('#netsize').val());
         let mirrorInt = ip2int(value);
         let maskBits = 32 - originalSize;
-        let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+        let mirrorAligned = ((mirrorInt >>> maskBits) << maskBits) >>> 0;
 
         if (mirrorInt === mirrorAligned) {
             $(this).removeClass('is-invalid').addClass('is-valid');

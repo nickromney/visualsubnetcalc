@@ -77,7 +77,7 @@ test.describe('Auto-Allocation Feature', () => {
     await expect(page.locator('input[data-subnet="10.96.1.64/27"]')).toHaveValue('aks-ingress');
   });
 
-  test('should analyze network utilization', async ({ page }) => {
+  test('should analyse network utilisation', async ({ page }) => {
     // Set up the base network
     await page.fill('#network', '10.0.0.0');
     await page.fill('#netsize', '16');
@@ -94,7 +94,7 @@ test.describe('Auto-Allocation Feature', () => {
       await page.waitForSelector('#autoAllocationBody.show');
     }
 
-    // Click analyze network
+    // Click analyse network
     await page.click('#btn_validate_alignment');
 
     // Check that analysis results appear

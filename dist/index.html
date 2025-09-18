@@ -47,7 +47,7 @@
                 <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
             </svg>
         </a>
-        <a href="https://github.com/ckabalan/visualsubnetcalc" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+        <a href="https://github.com/nickromney/visualsubnetcalc" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
             </svg>
@@ -372,7 +372,122 @@
                 <div class="modal-body">
                     Visual Subnet Calculator strives to be a tool for quickly designing networks and collaborating on that design with others. It focuses on expediting the work of network administrators, not academic subnetting math.<br />
                     <br/>
-                    <h4>Design Tenets</h4>
+                    <h4>Key Features</h4>
+                    <div class="accordion" id="featuresAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#autoAllocateFeature">
+                                    <strong>Auto-Allocation - Automatically allocate subnets based on requirements</strong>
+                                </button>
+                            </h2>
+                            <div id="autoAllocateFeature" class="accordion-collapse collapse" data-bs-parent="#featuresAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>How to use Auto-Allocation:</strong></p>
+                                    <ol>
+                                        <li>Click the "Auto-Allocate Helper" button to expand the panel</li>
+                                        <li>Enter your subnet requirements, one per line:
+                                            <ul>
+                                                <li>Format: <code>subnet-name /size</code></li>
+                                                <li>Example: <code>web-servers /24</code></li>
+                                                <li>Example: <code>database /26</code></li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Padding:</strong> Add space between subnets
+                                            <ul>
+                                                <li>Enter a CIDR size like <code>/28</code> to add that much space after each subnet</li>
+                                                <li>Useful for future growth or separation between environments</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Alignment:</strong> Force subnets to align to boundaries
+                                            <ul>
+                                                <li>Enter <code>/24</code> to align all subnets to /24 boundaries</li>
+                                                <li>Check "Align large subnets only" to only align subnets /24 or larger</li>
+                                                <li>Helpful for cloud providers or routing requirements</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Sort Order:</strong>
+                                            <ul>
+                                                <li>"Preserve Order" - Keeps your input order</li>
+                                                <li>"Alphabetical" - Sorts by subnet name</li>
+                                                <li>"Optimal" - Arranges for most efficient space usage</li>
+                                            </ul>
+                                        </li>
+                                        <li>Click "Auto-Allocate" to generate your layout</li>
+                                    </ol>
+                                    <p><em>Tip: The tool automatically creates "Spare" blocks for unused space between allocations</em></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mirrorFeature">
+                                    <strong>Mirror Networks - Create duplicate network layouts for DR/Blue-Green</strong>
+                                </button>
+                            </h2>
+                            <div id="mirrorFeature" class="accordion-collapse collapse" data-bs-parent="#featuresAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>How to use Mirror Networks:</strong></p>
+                                    <ol>
+                                        <li>Design your primary network layout first</li>
+                                        <li>Click the "Mirror Network" button in the toolbar</li>
+                                        <li>Enter the base address for your mirror network:
+                                            <ul>
+                                                <li>Must be the same CIDR size as your source</li>
+                                                <li>Must be aligned to the same boundary</li>
+                                                <li>Example: Source <code>10.0.0.0/16</code> → Mirror <code>10.100.0.0/16</code></li>
+                                            </ul>
+                                        </li>
+                                        <li>Customize the labels (default: Blue/Green)</li>
+                                        <li>Choose your action:
+                                            <ul>
+                                                <li><strong>"Copy Source and Mirror"</strong> - Exports both networks to clipboard for Excel/documentation</li>
+                                                <li><strong>"Replace Source with Mirror"</strong> - Replaces current view with the mirror network</li>
+                                            </ul>
+                                        </li>
+                                    </ol>
+                                    <p><em>Perfect for: Disaster Recovery sites, Blue-Green deployments, Multi-region setups</em></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#analysisFeature">
+                                    <strong>Network Analysis - Validate and optimize your design</strong>
+                                </button>
+                            </h2>
+                            <div id="analysisFeature" class="accordion-collapse collapse" data-bs-parent="#featuresAccordion">
+                                <div class="accordion-body">
+                                    <p>Click "Analyze Network" to get insights including:</p>
+                                    <ul>
+                                        <li>Network utilization percentage</li>
+                                        <li>Detection of gaps between subnets</li>
+                                        <li>Subnet alignment validation</li>
+                                        <li>Overlap detection (safety check)</li>
+                                        <li>RFC1918/RFC6598 address type identification</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#additionalFeatures">
+                                    <strong>Additional Features</strong>
+                                </button>
+                            </h2>
+                            <div id="additionalFeatures" class="accordion-collapse collapse" data-bs-parent="#featuresAccordion">
+                                <div class="accordion-body">
+                                    <ul>
+                                        <li><strong>Additional Columns:</strong> Toggle IP, CIDR, Mask, and Type columns for detailed views</li>
+                                        <li><strong>Keyboard Navigation:</strong> Use arrow keys to navigate between subnet notes</li>
+                                        <li><strong>Export Options:</strong> Copy table to clipboard, share via URL, or print</li>
+                                        <li><strong>Cloud Modes:</strong> AWS, Azure, and OCI modes with proper address reservations</li>
+                                        <li><strong>Color Coding:</strong> Organize subnets visually with colors and notes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 class="mt-4">Design Tenets</h4>
                     <ul>
                         <li><span style="font-weight:bold">Simplicity is king.</span> Network admins are busy and Visual Subnet Calculator should always be easy for FIRST TIME USERS to quickly and intuitively use.</li>
                         <li><span style="font-weight:bold">Subnetting is design work.</span> Promote features that enhance visual clarity and easy mental processing of even the most complex architectures.</li>
@@ -380,7 +495,7 @@
                         <li><span style="font-weight:bold">Embrace community contributions.</span> Consider and respond to all feedback and pull requests in the context of these tenets.</li>
                     </ul>
                     <h4 class="mt-4">Credits</h4>
-                    Developed by <a href="https://www.caesarkabalan.com/" target="_blank" rel="noopener noreferrer">Caesar Kabalan</a> with help from <a href="https://github.com/ckabalan/visualsubnetcalc/graphs/contributors" target="_blank" rel="noopener noreferrer">GitHub Contributors</a>!<br/>
+                    Developed by <a href="https://www.caesarkabalan.com/" target="_blank" rel="noopener noreferrer">Caesar Kabalan</a> with help from <a href="https://github.com/nickromney/visualsubnetcalc/graphs/contributors" target="_blank" rel="noopener noreferrer">GitHub Contributors</a>!<br/>
                     <br/>
                     Special thanks to <a href="https://www.davidc.net/" target="_blank" rel="noopener noreferrer">davidc</a> for the <a href="https://www.davidc.net/sites/default/subnets/subnets.html" target="_blank" rel="noopener noreferrer">original tool</a> this website is inspired by.<br/>
                     <br/>
@@ -388,7 +503,7 @@
                     <br/>
                     All contributions, even suggestions or bug reports, are welcome at:<br/>
                     <ul>
-                        <li>GitHub: <a href="https://github.com/ckabalan/visualsubnetcalc" target="_blank" rel="noopener noreferrer">https://github.com/ckabalan/visualsubnetcalc</a></li>
+                        <li>GitHub: <a href="https://github.com/nickromney/visualsubnetcalc" target="_blank" rel="noopener noreferrer">https://github.com/nickromney/visualsubnetcalc</a></li>
                         <li>LinkedIn: <a href="https://www.linkedin.com/in/caesarkabalan/" target="_blank" rel="noopener noreferrer">Caesar Kabalan</a></li>
                     </ul>
                 </div>
