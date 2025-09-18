@@ -91,7 +91,7 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
+  webServer: process.env.NO_SERVER ? undefined : {
     command: 'npm run build && npm run local-secure-start',
     port: 8443,
     reuseExistingServer: !process.env.CI,

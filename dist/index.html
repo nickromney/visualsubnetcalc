@@ -6,6 +6,7 @@
     <title>Visual Subnet Calculator - Split/Join</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link href="css/main.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <meta name="description" content="Quickly and easily design network layouts. Split and join subnets, add notes and color, then collaborate with others by sharing a custom link to your design.">
     <meta name="robots" content="index, follow" />
 
@@ -52,7 +53,7 @@
             </svg>
         </a>
     </div>
-    <h1>Visual Subnet Calculator</h1>
+    <h1><a href="/" class="text-decoration-none text-reset">Visual Subnet Calculator</a></h1>
     <div class="alert alert-primary  alert-dismissible show mt-3" role="alert">
         <p class="mb-1">Quickly and easily design network layouts. Split and join subnets, add notes and color, then collaborate with others by sharing a custom link to your design.</p>
         <p class="mb-0">Enter the network you wish to subnet and use the Split/Join buttons on the right to start designing!</p>
@@ -116,12 +117,90 @@
         </div>
     </form>
 
+    <!-- Auto-Allocation Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <button class="btn btn-link text-decoration-none p-0 text-start w-100" type="button" data-bs-toggle="collapse" data-bs-target="#autoAllocationBody" aria-expanded="false" aria-controls="autoAllocationBody">
+                    <i class="bi bi-chevron-right me-1"></i>
+                    Auto-Allocation Helper
+                </button>
+            </h5>
+        </div>
+        <div class="collapse" id="autoAllocationBody">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="subnetRequests" class="form-label">Subnet requirements</label>
+                    <div class="position-relative">
+                        <textarea class="form-control font-monospace" id="subnetRequests" rows="3" placeholder="AzureFirewallSubnet /26&#10;GatewaySubnet /27&#10;AzureBastionSubnet /26"></textarea>
+                        <div class="position-absolute top-0 end-0 mt-1 me-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="moveLineUp" title="Move line up">
+                                <i class="bi bi-arrow-up"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="moveLineDown" title="Move line down">
+                                <i class="bi bi-arrow-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted">One per line: name /size. Use arrows to reorder lines.</small>
+                    <div class="mt-2">
+                        <label for="sortOrder" class="form-label">Sort order</label>
+                        <select class="form-select form-select-sm" id="sortOrder">
+                            <option value="preserve">Preserve input order</option>
+                            <option value="alphabetical">Alphabetical by name</option>
+                            <option value="optimal">Optimize space usage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="reserveSpace" class="form-label">Pad after each subnet</label>
+                    <input type="text" class="form-control font-monospace" id="reserveSpace" value="" placeholder="/28">
+                    <small class="text-muted">Space to leave between subnets</small>
+                </div>
+                <div class="col-md-4">
+                    <label for="futureSubnetSize" class="form-label">Alignment size</label>
+                    <input type="text" class="form-control font-monospace" id="futureSubnetSize" value="" placeholder="/24">
+                    <small class="text-muted">Force alignment to this boundary</small>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" value="" id="alignLargeOnly">
+                        <label class="form-check-label" for="alignLargeOnly">
+                            Only align subnets ≥ alignment size
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button id="btn_auto_allocate" class="btn btn-primary" type="button">Auto-Allocate Subnets</button>
+                <button id="btn_validate_alignment" class="btn btn-secondary ms-2" type="button">Analyze Network</button>
+            </div>
+        </div>
+        </div>
+    </div>
 
+    <!-- Allocation Results - Outside collapsible area for visibility -->
+    <div id="allocation_results" class="mb-3"></div>
+
+    <div class="text-end mb-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="toggleColumns">
+            <i class="bi bi-table"></i> Show Additional Columns
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="copyTable">
+            <i class="bi bi-clipboard"></i> Copy Table
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="generateMirror">
+            <i class="bi bi-arrow-repeat"></i> Mirror
+        </button>
+    </div>
 
     <table id="calc" class="table table-bordered font-monospace" aria-label="Subnet Table">
         <thead>
             <tr>
-                <th aria-label="Subnet Address" id="subnetHeader" style="display: table-cell;">Subnet Address</th>
+                <th aria-label="Network Address" id="subnetHeader" style="display: table-cell;">Network Address</th>
+                <th aria-label="IP" id="ipHeader" class="additional-column" style="display: none;">IP</th>
+                <th aria-label="CIDR" id="cidrHeader" class="additional-column" style="display: none;">CIDR</th>
+                <th aria-label="Mask" id="maskHeader" class="additional-column" style="display: none;">Mask</th>
+                <th aria-label="Type" id="typeHeader" class="additional-column" style="display: none;">Type</th>
                 <th aria-label="Range of Addresses" id="rangeHeader" style="display: table-cell;">Range of Addresses</th>
                 <th aria-label="Usable IPs" id="useableHeader" style="display: table-cell;">Usable IPs</th>
                 <th aria-label="Hosts" id="hostsHeader" style="display: table-cell;">Hosts</th>
@@ -134,6 +213,9 @@
         <tbody id="calcbody">
             <tr id="row_10-0-0-0_16" aria-label="10.0.0.0/16">
                 <td aria-labelledby="subnetHeader" class="row_address">Loading...</td>
+                <td aria-labelledby="ipHeader" class="row_ip additional-column" style="display: none;"></td>
+                <td aria-labelledby="cidrHeader" class="row_cidr additional-column" style="display: none;"></td>
+                <td aria-labelledby="maskHeader" class="row_mask additional-column" style="display: none;"></td>
                 <td aria-labelledby="rangeHeader" class="row_range"></td>
                 <td aria-labelledby="useableHeader" class="row_usable"></td>
                 <td aria-labelledby="hostsHeader" class="row_hosts"></td>
@@ -164,6 +246,51 @@
         </div>
     </div>
 
+
+    <!-- Mirror Network Modal -->
+    <div class="modal fade" id="mirrorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Generate Mirror Network</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        <strong>Source Network:</strong> <span id="sourceNetworkDisplay" class="font-monospace">-</span>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="sourceLabel" class="form-label">Source Label</label>
+                            <input type="text" class="form-control" id="sourceLabel" value="Blue">
+                            <small class="text-muted">Label for source network</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="mirrorLabel" class="form-label">Mirror Label</label>
+                            <input type="text" class="form-control" id="mirrorLabel" value="Green">
+                            <small class="text-muted">Label for mirror network</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mirrorNetwork" class="form-label">Mirror Network Base</label>
+                        <input type="text" class="form-control font-monospace" id="mirrorNetwork" placeholder="e.g., 10.200.0.0"
+                               pattern="^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+                               required>
+                        <small class="text-muted" id="mirrorSizeHint">Enter the base network for the mirror</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="copySourceAndMirror">
+                        <i class="bi bi-clipboard2-plus"></i> Copy Source and Mirror
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirmMirror">
+                        <i class="bi bi-arrow-repeat"></i> Replace Source with Mirror
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="notifyModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md">
@@ -285,6 +412,15 @@
             crossorigin="anonymous"></script>
     <script src="js/lz-string.min.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // Handle chevron rotation for Auto-Allocation Helper
+        document.getElementById('autoAllocationBody').addEventListener('shown.bs.collapse', function () {
+            document.querySelector('[data-bs-target="#autoAllocationBody"] i').classList.replace('bi-chevron-right', 'bi-chevron-down');
+        });
+        document.getElementById('autoAllocationBody').addEventListener('hidden.bs.collapse', function () {
+            document.querySelector('[data-bs-target="#autoAllocationBody"] i').classList.replace('bi-chevron-down', 'bi-chevron-right');
+        });
+    </script>
 </div>
 </body>
 </html>
