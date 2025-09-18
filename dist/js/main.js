@@ -401,7 +401,7 @@ $('#copySourceAndMirror').on('click', function() {
     // Check that mirror network is properly aligned
     let mirrorInt = ip2int(mirrorBase);
     let maskBits = 32 - originalSize;
-    let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+    let mirrorAligned = ((mirrorInt >>> maskBits) << maskBits) >>> 0;
 
     if (mirrorInt !== mirrorAligned) {
         alert('Mirror network must be aligned to /' + originalSize + ' boundary');
@@ -702,7 +702,7 @@ $('#confirmMirror').on('click', function() {
 
     // Calculate if they're in the same size range
     let maskBits = 32 - originalSize;
-    let mirrorAligned = (mirrorInt >>> maskBits) << maskBits;
+    let mirrorAligned = ((mirrorInt >>> maskBits) << maskBits) >>> 0;
 
     if (mirrorInt !== mirrorAligned) {
         alert('Mirror network must be aligned to /' + originalSize + ' boundary');
