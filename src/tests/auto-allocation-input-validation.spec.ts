@@ -20,9 +20,6 @@ test.describe('Auto-Allocation Input Validation', () => {
       await page.click('[data-bs-target="#autoAllocationBody"]');
       await page.waitForSelector('#autoAllocationBody.show');
     }
-    // Expand the Auto-Allocation Helper section
-    await page.click('[data-bs-target="#autoAllocationBody"]');
-    await page.waitForSelector('#autoAllocationBody.show');
 
     await page.fill('#subnetRequests', 'test /24'); // Always have at least one subnet
   });

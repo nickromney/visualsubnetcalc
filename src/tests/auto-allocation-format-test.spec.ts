@@ -20,9 +20,6 @@ test.describe('Subnet Request Format Tests', () => {
       await page.click('[data-bs-target="#autoAllocationBody"]');
       await page.waitForSelector('#autoAllocationBody.show');
     }
-    // Expand the Auto-Allocation Helper section
-    await page.click('[data-bs-target="#autoAllocationBody"]');
-    await page.waitForSelector('#autoAllocationBody.show');
   });
 
   test('should accept subnet requests with slash notation', async ({ page }) => {
