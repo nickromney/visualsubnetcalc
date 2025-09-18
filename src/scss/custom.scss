@@ -1,6 +1,6 @@
-@import '../node_modules/bootstrap/scss/functions';
+@import '../../node_modules/bootstrap/scss/functions';
 
-@import '../node_modules/bootstrap/scss/variables';
+@import '../../node_modules/bootstrap/scss/variables';
 
 $new-breakpoints: (
         xxxl:1600px,
@@ -24,7 +24,7 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
   --bs-tooltip-opacity: 1 !important;
 }
 
-@import "../node_modules/bootstrap/scss/bootstrap";
+@import "../../node_modules/bootstrap/scss/bootstrap";
 
 
 // Print styles
