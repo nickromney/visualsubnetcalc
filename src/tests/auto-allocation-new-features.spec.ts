@@ -48,7 +48,7 @@ test.describe('Auto-Allocation New Features', () => {
       expect(order).toEqual(['alpha', 'mike', 'zulu']);
     });
 
-    test('should optimize space usage when selected', async ({ page }) => {
+    test('should optimise space usage when selected', async ({ page }) => {
       // Optimal packing puts largest subnets first
       await page.fill('#subnetRequests', 'small /28\nmedium /26\nlarge /24');
       await page.fill('#reserveSpace', ''); // Clear any default padding
