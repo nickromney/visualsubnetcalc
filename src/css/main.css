@@ -145,6 +145,61 @@
     text-decoration: none;
 }
 
+/* Dark mode adjustments */
+[data-bs-theme="dark"] #navigation a {
+    color:#ffffff;
+}
+
+[data-bs-theme="dark"] #bottom_nav span {
+    border-bottom:1px white dotted;
+}
+
+[data-bs-theme="dark"] #calc td.split {
+    background-color: #d9634f;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] #calc td.join {
+    background-color: #4d8fa6;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] #calc span.split {
+    color: #d9634f;
+}
+
+[data-bs-theme="dark"] #calc span.join {
+    color: #4d8fa6;
+}
+
+/* Adjust color palette borders for dark mode */
+[data-bs-theme="dark"] #color_palette div[id^='palette_picker_'] {
+    border-color: #dee2e6;
+}
+
+/* Cloud mode links styling */
+.cloud-mode-link {
+    color: #000;
+    border-bottom: 1px dotted #000;
+    text-decoration: none;
+}
+
+.cloud-mode-link:hover {
+    color: #333;
+    border-bottom-style: solid;
+}
+
+/* Dark mode cloud links */
+[data-bs-theme="dark"] .cloud-mode-link {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+[data-bs-theme="dark"] .cloud-mode-link:hover {
+    color: #ddd;
+    border-bottom-style: solid;
+}
+
 #subnet_input #network {
     flex-grow: 0;
     flex-basis: 11rem;
