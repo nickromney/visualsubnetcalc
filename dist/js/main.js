@@ -149,6 +149,11 @@ $('#color_palette div').on('click', function() {
 })
 
 $('#calcbody').on('click', '.row_address, .row_ip, .row_cidr, .row_mask, .row_range, .row_usable, .row_hosts, .note, input', function(event) {
+    // Don't apply color if clicking on a link
+    if ($(event.target).is('a') || $(event.target).closest('a').length) {
+        return;
+    }
+
     if (inflightColor !== 'NONE') {
         mutate_subnet_map('color', this.dataset.subnet, '', inflightColor)
         // We could re-render here, but there is really no point, keep performant and just change the background color now
@@ -1187,11 +1192,13 @@ function updatePrintAttributes() {
 
     // Add print footer element after the table if it doesn't exist
     if (!$('.print-footer').length) {
-        const footerHtml = `<div class="print-footer">URL: ${window.location.href}</div>`;
+        const safeUrl = escapeHtml(window.location.href);
+        const footerHtml = `<div class="print-footer">URL: ${safeUrl}</div>`;
         $('#calc').after(footerHtml);
     } else {
         // Update the footer content if it already exists
-        $('.print-footer').html(`URL: ${window.location.href}`);
+        const safeUrl = escapeHtml(window.location.href);
+        $('.print-footer').html(`URL: ${safeUrl}`);
     }
 }
 
@@ -1255,7 +1262,7 @@ function addRow(network, netSize, colspan, note, notesWidth, color, operatingMod
     let additionalDisplay = additionalColumnsVisible ? '' : ' style="display: none;"'
     let newRow =
         '            <tr id="' + rowId + '"' + styleTag + rowClass + '  aria-label="' + rowCIDR + '">\n' +
-        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address">' + rowCIDR + '</td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address"><a href="https://cidr.xyz/#' + rowCIDR + '" target="_blank" class="text-decoration-underline" data-bs-toggle="tooltip" data-bs-placement="top" title="Look up on cidr.xyz">' + rowCIDR + '</a></td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' ipHeader" class="row_ip additional-column"' + additionalDisplay + '>' + network + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' cidrHeader" class="row_cidr additional-column"' + additionalDisplay + '>/' + netSize + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' maskHeader" class="row_mask additional-column"' + additionalDisplay + '>' + subnetMask + '</td>\n' +
