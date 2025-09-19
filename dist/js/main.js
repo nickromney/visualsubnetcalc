@@ -4,6 +4,40 @@ let maxNetSize = 0;
 let infoColumnCount = 5  // Default without additional columns
 let additionalColumnsVisible = false;
 const FEEDBACK_DURATION_MS = 1000;  // Duration for UI feedback messages
+
+// Helper function to escape HTML to prevent XSS vulnerabilities
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, char => map[char]);
+}
+
+// Helper function to generate HTML table from table data array
+function generateHtmlTable(tableData) {
+    let htmlTable = '<table><thead><tr>';
+    let headerRow = tableData[0].split('\t');
+    headerRow.forEach(header => {
+        htmlTable += '<th>' + escapeHtml(header) + '</th>';
+    });
+    htmlTable += '</tr></thead><tbody>';
+
+    for (let i = 1; i < tableData.length; i++) {
+        htmlTable += '<tr>';
+        let cells = tableData[i].split('\t');
+        cells.forEach(cell => {
+            htmlTable += '<td>' + escapeHtml(cell) + '</td>';
+        });
+        htmlTable += '</tr>';
+    }
+    htmlTable += '</tbody></table>';
+
+    return htmlTable;
+}
 // NORMAL mode:
 //   - Smallest subnet: /32
 //   - Two reserved addresses per subnet of size <= 30:
@@ -411,22 +445,7 @@ $('#copyTable').on('click', function() {
     let textToCopy = tableData.join('\n');
 
     // Also create HTML table format for Confluence
-    let htmlTable = '<table><thead><tr>';
-    let headerRow = tableData[0].split('\t');
-    headerRow.forEach(header => {
-        htmlTable += '<th>' + header + '</th>';
-    });
-    htmlTable += '</tr></thead><tbody>';
-
-    for (let i = 1; i < tableData.length; i++) {
-        htmlTable += '<tr>';
-        let cells = tableData[i].split('\t');
-        cells.forEach(cell => {
-            htmlTable += '<td>' + cell + '</td>';
-        });
-        htmlTable += '</tr>';
-    }
-    htmlTable += '</tbody></table>';
+    let htmlTable = generateHtmlTable(tableData);
 
     // Try to use ClipboardItem API for multiple formats
     if (navigator.clipboard && navigator.clipboard.write) {
@@ -671,22 +690,7 @@ $('#copySourceAndMirror').on('click', function() {
     let textData = tableData.join('\n');
 
     // Also create HTML table format for Confluence
-    let htmlTableMirror = '<table><thead><tr>';
-    let headerRowMirror = tableData[0].split('\t');
-    headerRowMirror.forEach(header => {
-        htmlTableMirror += '<th>' + header + '</th>';
-    });
-    htmlTableMirror += '</tr></thead><tbody>';
-
-    for (let i = 1; i < tableData.length; i++) {
-        htmlTableMirror += '<tr>';
-        let cells = tableData[i].split('\t');
-        cells.forEach(cell => {
-            htmlTableMirror += '<td>' + cell + '</td>';
-        });
-        htmlTableMirror += '</tr>';
-    }
-    htmlTableMirror += '</tbody></table>';
+    let htmlTableMirror = generateHtmlTable(tableData);
 
     // Copy to clipboard with both text and HTML formats
     let btn = $(this);
