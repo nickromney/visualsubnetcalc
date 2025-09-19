@@ -200,5 +200,11 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
     #calcbody tr {
       page-break-inside: avoid !important;
     }
+
+    // Remove link underlines and formatting in print
+    .row_address a {
+      text-decoration: none !important;
+      color: black !important;
+    }
   }
 }
