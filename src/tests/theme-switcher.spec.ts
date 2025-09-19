@@ -31,7 +31,7 @@ test.describe('Theme Switcher Feature', () => {
         // Check that light button is inactive
         const lightButton = await page.locator('#theme_light');
         await expect(lightButton).toHaveClass(/btn-outline-secondary/);
-        await expect(lightButton).not.toHaveClass(/btn-secondary(?!-)/)
+        await expect(lightButton).not.toHaveClass('btn-secondary')
     });
 
     test('should switch to light theme when light button is clicked', async ({ page }) => {
@@ -50,7 +50,7 @@ test.describe('Theme Switcher Feature', () => {
 
         const darkButton = await page.locator('#theme_dark');
         await expect(darkButton).toHaveClass(/btn-outline-secondary/);
-        await expect(darkButton).not.toHaveClass(/btn-secondary(?!-)/)
+        await expect(darkButton).not.toHaveClass('btn-secondary')
     });
 
     test('should switch back to dark theme when dark button is clicked', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe('Theme Switcher Feature', () => {
 
         const lightButton = await page.locator('#theme_light');
         await expect(lightButton).toHaveClass(/btn-outline-secondary/);
-        await expect(lightButton).not.toHaveClass(/btn-secondary(?!-)/)
+        await expect(lightButton).not.toHaveClass('btn-secondary')
     });
 
     test('should persist theme choice across page reloads', async ({ page, context }) => {

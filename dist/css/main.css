@@ -177,6 +177,29 @@
     border-color: #dee2e6;
 }
 
+/* Cloud mode links styling */
+.cloud-mode-link {
+    color: #000;
+    border-bottom: 1px dotted #000;
+    text-decoration: none;
+}
+
+.cloud-mode-link:hover {
+    color: #333;
+    border-bottom-style: solid;
+}
+
+/* Dark mode cloud links */
+[data-bs-theme="dark"] .cloud-mode-link {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+[data-bs-theme="dark"] .cloud-mode-link:hover {
+    color: #ddd;
+    border-bottom-style: solid;
+}
+
 #subnet_input #network {
     flex-grow: 0;
     flex-basis: 11rem;
