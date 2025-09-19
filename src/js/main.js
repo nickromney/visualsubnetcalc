@@ -1187,11 +1187,13 @@ function updatePrintAttributes() {
 
     // Add print footer element after the table if it doesn't exist
     if (!$('.print-footer').length) {
-        const footerHtml = `<div class="print-footer">URL: ${window.location.href}</div>`;
+        const safeUrl = escapeHtml(window.location.href);
+        const footerHtml = `<div class="print-footer">URL: ${safeUrl}</div>`;
         $('#calc').after(footerHtml);
     } else {
         // Update the footer content if it already exists
-        $('.print-footer').html(`URL: ${window.location.href}`);
+        const safeUrl = escapeHtml(window.location.href);
+        $('.print-footer').html(`URL: ${safeUrl}`);
     }
 }
 
