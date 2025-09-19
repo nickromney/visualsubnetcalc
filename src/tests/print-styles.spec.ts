@@ -71,17 +71,32 @@ test.describe("Print Styles", () => {
     expect(tbodyVisible).toBe(true);
   });
 
-  test("should show only essential columns and hide toggle button in print media", async ({
+  test("should show only essential columns and hide all UI buttons in print media", async ({
     page,
   }) => {
     // Emulate print media
     await page.emulateMedia({ media: "print" });
 
-    // Check that the toggle button is hidden
-    const toggleButtonVisible = await page
+    // Check that all UI buttons are hidden
+    const toggleColumnsVisible = await page
       .locator("#toggleColumns")
       .isVisible();
-    expect(toggleButtonVisible).toBe(false);
+    expect(toggleColumnsVisible).toBe(false);
+
+    const toggleSplitJoinVisible = await page
+      .locator("#toggleSplitJoin")
+      .isVisible();
+    expect(toggleSplitJoinVisible).toBe(false);
+
+    const copyTableVisible = await page
+      .locator("#copyTable")
+      .isVisible();
+    expect(copyTableVisible).toBe(false);
+
+    const mirrorButtonVisible = await page
+      .locator("#generateMirror")
+      .isVisible();
+    expect(mirrorButtonVisible).toBe(false);
 
     // Get first row of tbody
     const firstRow = page.locator("#calcbody tr").first();
@@ -121,6 +136,15 @@ test.describe("Print Styles", () => {
 
     const joinVisible = await firstRow.locator(".join").isVisible();
     expect(joinVisible).toBe(false);
+
+    // Check that the Note header doesn't have Split/Join text
+    // First verify the split-join-header div is hidden
+    const splitJoinHeaderVisible = await page.locator(".split-join-header").isVisible();
+    expect(splitJoinHeaderVisible).toBe(false);
+
+    // The text content should just be "Note" when the div is hidden
+    const noteHeaderVisible = await page.locator("#noteHeader").isVisible();
+    expect(noteHeaderVisible).toBe(true);
   });
 
   test("should generate print-friendly content with CSS", async ({ page }) => {
