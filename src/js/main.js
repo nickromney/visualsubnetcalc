@@ -1262,7 +1262,7 @@ function addRow(network, netSize, colspan, note, notesWidth, color, operatingMod
     let additionalDisplay = additionalColumnsVisible ? '' : ' style="display: none;"'
     let newRow =
         '            <tr id="' + rowId + '"' + styleTag + rowClass + '  aria-label="' + rowCIDR + '">\n' +
-        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address"><a href="https://cidr.xyz/#' + rowCIDR + '" target="_blank" class="text-decoration-underline" data-bs-toggle="tooltip" data-bs-placement="top" title="Look up on cidr.xyz">' + rowCIDR + '</a></td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address"><a href="https://cidr.xyz/#' + encodeURIComponent(rowCIDR) + '" target="_blank" class="text-decoration-underline" data-bs-toggle="tooltip" data-bs-placement="top" title="Look up on cidr.xyz">' + rowCIDR + '</a></td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' ipHeader" class="row_ip additional-column"' + additionalDisplay + '>' + network + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' cidrHeader" class="row_cidr additional-column"' + additionalDisplay + '>/' + netSize + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' maskHeader" class="row_mask additional-column"' + additionalDisplay + '>' + subnetMask + '</td>\n' +
