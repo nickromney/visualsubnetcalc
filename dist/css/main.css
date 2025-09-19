@@ -145,6 +145,38 @@
     text-decoration: none;
 }
 
+/* Dark mode adjustments */
+[data-bs-theme="dark"] #navigation a {
+    color:#ffffff;
+}
+
+[data-bs-theme="dark"] #bottom_nav span {
+    border-bottom:1px white dotted;
+}
+
+[data-bs-theme="dark"] #calc td.split {
+    background-color: #d9634f;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] #calc td.join {
+    background-color: #4d8fa6;
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] #calc span.split {
+    color: #d9634f;
+}
+
+[data-bs-theme="dark"] #calc span.join {
+    color: #4d8fa6;
+}
+
+/* Adjust color palette borders for dark mode */
+[data-bs-theme="dark"] #color_palette div[id^='palette_picker_'] {
+    border-color: #dee2e6;
+}
+
 #subnet_input #network {
     flex-grow: 0;
     flex-basis: 11rem;

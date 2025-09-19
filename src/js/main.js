@@ -232,6 +232,24 @@ $('#toggleColumns').on('click', function() {
     renderTable(operatingMode);
 })
 
+// Toggle Split/Join columns visibility
+let splitJoinVisible = true;
+$('#toggleSplitJoin').on('click', function() {
+    splitJoinVisible = !splitJoinVisible;
+
+    if (splitJoinVisible) {
+        // Show Split/Join columns
+        $('.split, .join').show();
+        $('#splitHeader, #joinHeader').parent().show();
+        $(this).html('<i class="bi bi-arrows-expand"></i> Hide Split/Join');
+    } else {
+        // Hide Split/Join columns
+        $('.split, .join').hide();
+        $('#splitHeader, #joinHeader').parent().hide();
+        $(this).html('<i class="bi bi-arrows-collapse"></i> Show Split/Join');
+    }
+})
+
 // Copy table to clipboard functionality
 $('#copyTable').on('click', function() {
     // Get the parent network information
