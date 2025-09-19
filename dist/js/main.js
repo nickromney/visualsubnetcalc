@@ -4,6 +4,40 @@ let maxNetSize = 0;
 let infoColumnCount = 5  // Default without additional columns
 let additionalColumnsVisible = false;
 const FEEDBACK_DURATION_MS = 1000;  // Duration for UI feedback messages
+
+// Helper function to escape HTML to prevent XSS vulnerabilities
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, char => map[char]);
+}
+
+// Helper function to generate HTML table from table data array
+function generateHtmlTable(tableData) {
+    let htmlTable = '<table><thead><tr>';
+    let headerRow = tableData[0].split('\t');
+    headerRow.forEach(header => {
+        htmlTable += '<th>' + escapeHtml(header) + '</th>';
+    });
+    htmlTable += '</tr></thead><tbody>';
+
+    for (let i = 1; i < tableData.length; i++) {
+        htmlTable += '<tr>';
+        let cells = tableData[i].split('\t');
+        cells.forEach(cell => {
+            htmlTable += '<td>' + escapeHtml(cell) + '</td>';
+        });
+        htmlTable += '</tr>';
+    }
+    htmlTable += '</tbody></table>';
+
+    return htmlTable;
+}
 // NORMAL mode:
 //   - Smallest subnet: /32
 //   - Two reserved addresses per subnet of size <= 30:
@@ -407,10 +441,68 @@ $('#copyTable').on('click', function() {
         tableData.push(rowData.join('\t'));
     });
 
-    // Copy to clipboard
+    // Copy to clipboard with both text and HTML formats
     let textToCopy = tableData.join('\n');
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    // Also create HTML table format for Confluence
+    let htmlTable = generateHtmlTable(tableData);
+
+    // Try to use ClipboardItem API for multiple formats
+    if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+            const clipboardItem = new ClipboardItem({
+                'text/plain': new Blob([textToCopy], { type: 'text/plain' }),
+                'text/html': new Blob([htmlTable], { type: 'text/html' })
+            });
+
+            navigator.clipboard.write([clipboardItem]).then(function() {
+                // Show success feedback
+                let btn = $('#copyTable');
+                let originalHtml = btn.html();
+                btn.html('<i class="bi bi-check-circle"></i> Copied!');
+                btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                setTimeout(function() {
+                    btn.html(originalHtml);
+                    btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                }, 2000);
+            }).catch(function(err) {
+                // Fallback to text-only copy
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    // Show success feedback
+                    let btn = $('#copyTable');
+                    let originalHtml = btn.html();
+                    btn.html('<i class="bi bi-check-circle"></i> Copied!');
+                    btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                    setTimeout(function() {
+                        btn.html(originalHtml);
+                        btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                    }, 2000);
+                }).catch(function(err2) {
+                    show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+                    console.error('Failed to copy: ', err2);
+                });
+            });
+        } catch (e) {
+            // Fallback to text-only copy if ClipboardItem is not supported
+            navigator.clipboard.writeText(textToCopy).then(function() {
+                // Show success feedback
+                let btn = $('#copyTable');
+                let originalHtml = btn.html();
+                btn.html('<i class="bi bi-check-circle"></i> Copied!');
+                btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                setTimeout(function() {
+                    btn.html(originalHtml);
+                    btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                }, 2000);
+            }).catch(function(err) {
+                show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+                console.error('Failed to copy: ', err);
+            });
+        }
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textToCopy).then(function() {
             // Show success feedback
             let btn = $('#copyTable');
@@ -597,16 +689,64 @@ $('#copySourceAndMirror').on('click', function() {
     // Join all the data
     let textData = tableData.join('\n');
 
-    // Copy to clipboard
+    // Also create HTML table format for Confluence
+    let htmlTableMirror = generateHtmlTable(tableData);
+
+    // Copy to clipboard with both text and HTML formats
     let btn = $(this);
     let originalHtml = btn.html();
 
-    if (navigator.clipboard && window.isSecureContext) {
+    if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+            const clipboardItem = new ClipboardItem({
+                'text/plain': new Blob([textData], { type: 'text/plain' }),
+                'text/html': new Blob([htmlTableMirror], { type: 'text/html' })
+            });
+
+            navigator.clipboard.write([clipboardItem]).then(function() {
+                btn.html('<i class="bi bi-check2"></i> Copied!');
+                btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                // Reset button after 2 seconds
+                setTimeout(function() {
+                    btn.html(originalHtml);
+                    btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                }, 2000);
+            }).catch(function(err) {
+                // Fallback to text-only copy
+                navigator.clipboard.writeText(textData).then(function() {
+                    btn.html('<i class="bi bi-check2"></i> Copied!');
+                    btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                    setTimeout(function() {
+                        btn.html(originalHtml);
+                        btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                    }, 2000);
+                }).catch(function(err2) {
+                    show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+                    console.error('Failed to copy: ', err2);
+                });
+            });
+        } catch (e) {
+            // Fallback to text-only copy if ClipboardItem is not supported
+            navigator.clipboard.writeText(textData).then(function() {
+                btn.html('<i class="bi bi-check2"></i> Copied!');
+                btn.removeClass('btn-outline-secondary').addClass('btn-success');
+
+                setTimeout(function() {
+                    btn.html(originalHtml);
+                    btn.removeClass('btn-success').addClass('btn-outline-secondary');
+                }, 2000);
+            }).catch(function(err) {
+                show_warning_modal('<div class="alert alert-danger">Failed to copy to clipboard. Please try again.</div>');
+                console.error('Failed to copy: ', err);
+            });
+        }
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(textData).then(function() {
             btn.html('<i class="bi bi-check2"></i> Copied!');
             btn.removeClass('btn-outline-secondary').addClass('btn-success');
 
-            // Reset button after 2 seconds
             setTimeout(function() {
                 btn.html(originalHtml);
                 btn.removeClass('btn-success').addClass('btn-outline-secondary');
@@ -616,7 +756,7 @@ $('#copySourceAndMirror').on('click', function() {
             console.error('Failed to copy: ', err);
         });
     } else {
-        // Fallback for browsers that don't support clipboard API
+        // Fallback for browsers that don't support clipboard access
         show_warning_modal('<div class="alert alert-warning">Your browser does not support clipboard access. Please use Ctrl+C/Cmd+C to copy.</div>');
     }
 });
