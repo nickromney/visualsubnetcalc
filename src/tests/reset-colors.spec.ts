@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+// Helper constant for checking transparent/empty background colors
+const TRANSPARENT_COLOR_PATTERN = /rgba?\(0,\s*0,\s*0,\s*0\)|transparent/;
+
 test.describe('Reset Colors Functionality', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('http://localhost:8080');
@@ -56,8 +59,8 @@ test.describe('Reset Colors Functionality', () => {
         );
 
         // Colors should not be transparent/empty
-        expect(firstRowColor).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
-        expect(secondRowColor).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(firstRowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(secondRowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
 
         // Click Reset button
         await page.click('#reset_colors');
@@ -72,8 +75,8 @@ test.describe('Reset Colors Functionality', () => {
         );
 
         // Colors should be transparent/empty after reset
-        expect(firstRowColor).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
-        expect(secondRowColor).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(firstRowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(secondRowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
     });
 
     test('should show feedback when reset is clicked', async ({ page }) => {
@@ -119,7 +122,7 @@ test.describe('Reset Colors Functionality', () => {
         let rowColor = await firstRow.evaluate(el =>
             window.getComputedStyle(el).backgroundColor
         );
-        expect(rowColor).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(rowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
 
         // Switch to light theme
         await page.click('#theme_light');
@@ -134,7 +137,7 @@ test.describe('Reset Colors Functionality', () => {
         rowColor = await firstRow.evaluate(el =>
             window.getComputedStyle(el).backgroundColor
         );
-        expect(rowColor).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(rowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
 
         // Reset again
         await page.click('#reset_colors');
@@ -144,7 +147,7 @@ test.describe('Reset Colors Functionality', () => {
         rowColor = await firstRow.evaluate(el =>
             window.getComputedStyle(el).backgroundColor
         );
-        expect(rowColor).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(rowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
     });
 
     test('should persist reset through page actions', async ({ page }) => {
@@ -170,8 +173,8 @@ test.describe('Reset Colors Functionality', () => {
             window.getComputedStyle(el).backgroundColor
         );
 
-        expect(color1).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
-        expect(color2).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(color1).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(color2).not.toMatch(TRANSPARENT_COLOR_PATTERN);
 
         // Reset colors
         await page.click('#reset_colors');
@@ -185,8 +188,8 @@ test.describe('Reset Colors Functionality', () => {
             window.getComputedStyle(el).backgroundColor
         );
 
-        expect(color1).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
-        expect(color2).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+        expect(color1).toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(color2).toMatch(TRANSPARENT_COLOR_PATTERN);
 
         // Do another action (split a subnet if possible) to verify colors stay cleared
         const splitCount = await page.locator('td.split').count();
@@ -198,7 +201,7 @@ test.describe('Reset Colors Functionality', () => {
             color1 = await firstRow.evaluate(el =>
                 window.getComputedStyle(el).backgroundColor
             );
-            expect(color1).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+            expect(color1).toMatch(TRANSPARENT_COLOR_PATTERN);
         }
     });
 
@@ -231,7 +234,7 @@ test.describe('Reset Colors Functionality', () => {
             const color = await row.evaluate(el =>
                 window.getComputedStyle(el).backgroundColor
             );
-            expect(color).not.toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+            expect(color).not.toMatch(TRANSPARENT_COLOR_PATTERN);
         }
 
         // Reset all colors
@@ -245,7 +248,7 @@ test.describe('Reset Colors Functionality', () => {
             const color = await row.evaluate(el =>
                 window.getComputedStyle(el).backgroundColor
             );
-            expect(color).toMatch(/rgba?\(0,\s*0,\s*0,\s*0\)|transparent/);
+            expect(color).toMatch(TRANSPARENT_COLOR_PATTERN);
         }
     });
 });

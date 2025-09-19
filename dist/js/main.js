@@ -3,6 +3,7 @@ let subnetNotes = {};
 let maxNetSize = 0;
 let infoColumnCount = 5  // Default without additional columns
 let additionalColumnsVisible = false;
+const FEEDBACK_DURATION_MS = 1000;  // Duration for UI feedback messages
 // NORMAL mode:
 //   - Smallest subnet: /32
 //   - Two reserved addresses per subnet of size <= 30:
@@ -221,7 +222,7 @@ $('#color_palette #reset_colors').on('click', function() {
     $(this).find('span').text('Reset!');
     setTimeout(() => {
         $(this).find('span').text('Reset');
-    }, 1000);
+    }, FEEDBACK_DURATION_MS);
 })
 
 $('#bottom_nav #copy_url').on('click', function() {
@@ -1008,7 +1009,7 @@ $('#calcbody').on('click', 'td.split,td.join', function(event) {
 
 $('#calcbody').on('keyup', 'td.note input', function(event) {
     // HTML DOM Data elements! Yay! See the `data-*` attributes of the HTML tags
-    let delay = 1000;
+    let delay = FEEDBACK_DURATION_MS;
     clearTimeout(noteTimeout);
     noteTimeout = setTimeout(function(element) {
         mutate_subnet_map('note', element.dataset.subnet, '', element.value)
