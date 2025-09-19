@@ -1184,6 +1184,17 @@ function updatePrintAttributes() {
 
     // Set the current URL for printing
     $('body').attr('data-print-url', window.location.href);
+
+    // Add print footer element after the table if it doesn't exist
+    if (!$('.print-footer').length) {
+        const safeUrl = escapeHtml(window.location.href);
+        const footerHtml = `<div class="print-footer">URL: ${safeUrl}</div>`;
+        $('#calc').after(footerHtml);
+    } else {
+        // Update the footer content if it already exists
+        const safeUrl = escapeHtml(window.location.href);
+        $('.print-footer').html(`URL: ${safeUrl}`);
+    }
 }
 
 function addRowTree(subnetTree, depth, maxDepth, operatingMode) {
