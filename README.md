@@ -17,6 +17,15 @@ expediting the work of network administrators, not academic subnetting math.
 - **Export Options** - Copy tables to Excel/Confluence, share via URL, or print
 - **Color Coding** - Visually organize subnets with colors and notes
 
+### Smart Clipboard Integration
+
+Visual Subnet Calculator uses modern clipboard APIs to provide seamless integration with different applications. When you copy a table using the "Copy Table" button, the clipboard receives the data in multiple formats simultaneously:
+
+- **Plain Text Format (TSV)** - Tab-separated values for Excel and similar spreadsheet applications
+- **HTML Table Format** - Properly structured HTML tables for Confluence, Word, and other rich-text applications
+
+This dual-format approach means you copy once and paste anywhere - each application automatically selects the format it prefers. Excel will use the TSV format to create proper cells and columns, while Confluence will use the HTML format to create a formatted table. This eliminates the need for manual reformatting after pasting.
+
 ## Design Tenets
 
 The following tenets are the most important values that drive the design of the tool. New features, pull requests, etc
