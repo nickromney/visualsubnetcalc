@@ -105,6 +105,12 @@
     border:1px solid;
 }
 
+#color_palette #reset_colors {
+    padding: 0 0.5rem;
+    border: 1px solid;
+    background-color: #f8f9fa;
+}
+
 #color_palette #palette_picker_1 {
     background-color: var(--subpal-1-1);
 }
@@ -175,6 +181,44 @@
 /* Adjust color palette borders for dark mode */
 [data-bs-theme="dark"] #color_palette div[id^='palette_picker_'] {
     border-color: #dee2e6;
+}
+
+/* Dark mode reset button */
+[data-bs-theme="dark"] #color_palette #reset_colors {
+    background-color: #495057;
+    color: #ffffff;
+}
+
+/* Dark mode color palette - darker colors for better contrast with white text */
+[data-bs-theme="dark"] #color_palette #palette_picker_1 {
+    background-color: #8b3a3a; /* Deep red */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_2 {
+    background-color: #8b5a2b; /* Deep orange/brown */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_3 {
+    background-color: #8b7500; /* Deep gold */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_4 {
+    background-color: #2e7d32; /* Deep green */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_5 {
+    background-color: #006064; /* Deep cyan */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_6 {
+    background-color: #1565c0; /* Deep blue */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_7 {
+    background-color: #6a1b9a; /* Deep purple */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_8 {
+    background-color: #880e4f; /* Deep magenta */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_9 {
+    background-color: #424242; /* Deep gray */
+}
+[data-bs-theme="dark"] #color_palette #palette_picker_10 {
+    background-color: #616161; /* Medium gray */
 }
 
 /* Cloud mode links styling */

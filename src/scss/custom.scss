@@ -27,6 +27,9 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
 @import "../../node_modules/bootstrap/scss/bootstrap";
 
 
+// Print orientation is handled dynamically by JavaScript
+// Default is portrait, landscape is added when additional columns are shown
+
 // Print styles
 @media print {
   // Hide navigation and all UI elements except the table
@@ -41,7 +44,10 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
   h1,
   #allocation_results,
   #autoAllocationBody,
-  #toggleColumns {
+  #toggleColumns,
+  #toggleSplitJoin,
+  #copyTable,
+  #generateMirror {
     display: none !important;
   }
 
@@ -77,22 +83,18 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
   #calc tr {
     display: table-row !important;
     page-break-inside: avoid !important;
+    // Preserve row background colors in print
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
 
-  // Hide additional columns (IP, CIDR, Mask) and Usable IPs
-  .additional-column,
-  #ipHeader,
-  #cidrHeader,
-  #maskHeader,
+  // Hide Usable IPs column by default in print
   #useableHeader,
-  .row_ip,
-  .row_cidr,
-  .row_mask,
   .row_usable {
     display: none !important;
   }
 
-  // Show only the essential columns
+  // Show essential columns always
   #subnetHeader,
   #rangeHeader,
   #hostsHeader,
@@ -107,6 +109,37 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
     text-align: left !important;
   }
 
+  // Hide additional columns by default in print
+  #ipHeader,
+  #cidrHeader,
+  #maskHeader,
+  #typeHeader,
+  .row_ip,
+  .row_cidr,
+  .row_mask,
+  .row_type {
+    display: none !important;
+  }
+
+  // Show additional columns when toggled on (including Usable IPs)
+  body.show-additional-columns {
+    #ipHeader,
+    #cidrHeader,
+    #maskHeader,
+    #typeHeader,
+    #useableHeader,
+    .row_ip,
+    .row_cidr,
+    .row_mask,
+    .row_type,
+    .row_usable {
+      display: table-cell !important;
+      padding: 4pt 8pt !important;
+      border: 1px solid #000 !important;
+      text-align: left !important;
+    }
+  }
+
   // Hide split/join columns
   .split,
   .join,
@@ -116,9 +149,8 @@ $container-max-widths: map-merge($container-max-widths, $new-container-max-width
   }
 
   // Hide the split/join text in the header
-  #splitHeader,
-  #joinHeader,
-  #calc th div[style*="float:right"] {
+  // The entire div containing Split/Join needs to be hidden
+  .split-join-header {
     display: none !important;
   }
 

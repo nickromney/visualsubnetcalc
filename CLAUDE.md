@@ -62,24 +62,37 @@ NO_SERVER=1 npx playwright test # Skip server startup (run tests in parallel)
 
 ```
 /
-├── src/
+├── src/                     # SOURCE FILES - EDIT THESE
 │   ├── package.json          # Dependencies and scripts
+│   ├── index.html           # Main application HTML source
+│   ├── js/
+│   │   └── main.js         # Core application logic SOURCE
 │   ├── playwright.config.ts  # Test configuration
 │   ├── scss/
 │   │   └── custom.scss      # Custom Bootstrap styling
 │   └── tests/               # Playwright test specs
-└── dist/                    # Production build output
-    ├── index.html          # Main application
+└── dist/                    # PRODUCTION BUILD - DO NOT EDIT DIRECTLY
+    ├── index.html          # Copied from src/index.html
     ├── js/
-    │   ├── main.js        # Core application logic
+    │   ├── main.js        # Copied from src/js/main.js
     │   └── lz-string.min.js # URL compression library
     └── css/
-        └── bootstrap.min.css # Compiled styles
+        └── bootstrap.min.css # Compiled from src/scss/custom.scss
 ```
+
+**IMPORTANT**: Always edit files in the `src/` directory, NOT in `dist/`. The `dist/` directory contains production files that are either:
+- Copied from `src/` (index.html, main.js)
+- Compiled from `src/` (bootstrap.min.css from custom.scss)
+- Copied from node_modules (lz-string.min.js)
+
+After making changes in `src/`:
+- For JS/HTML changes: Copy files to dist (`cp src/js/main.js dist/js/main.js`, `cp src/index.html dist/index.html`)
+- For SCSS changes: Run `npm run build` to compile CSS
+- The build process will handle copying necessary files
 
 ## Key Implementation Details
 
-### Subnet Calculation (`dist/js/main.js`)
+### Subnet Calculation (`src/js/main.js`)
 
 - Uses `subnetMap` object to track subnet hierarchy
 - Implements split/join operations with visual feedback
@@ -204,7 +217,7 @@ Column visibility is toggled via "Show/Hide Additional Columns" button.
 
 ### Common Pitfalls to Avoid
 
-1. **Don't edit compiled files**: The project structure is unusual - `dist/js/main.js` IS the source file, not compiled output
+1. **Always edit source files in src/**: Never edit files directly in `dist/` - always edit in `src/` and copy/build to `dist/`
 2. **Subnet alignment**: A subnet must start on its size boundary (e.g., /25 must start on a /25 boundary like .0, .128)
 3. **Reset behavior**: The `reset()` function tries to preserve data - for clean slate, clear `subnetMap` first
 4. **Sorting subnets**: User input order matters unless explicitly sorted via dropdown

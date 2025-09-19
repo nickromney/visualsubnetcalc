@@ -3,6 +3,7 @@ let subnetNotes = {};
 let maxNetSize = 0;
 let infoColumnCount = 5  // Default without additional columns
 let additionalColumnsVisible = false;
+const FEEDBACK_DURATION_MS = 1000;  // Duration for UI feedback messages
 // NORMAL mode:
 //   - Smallest subnet: /32
 //   - Two reserved addresses per subnet of size <= 30:
@@ -197,6 +198,33 @@ $('#bottom_nav #colors_word_close').on('click', function() {
     inflightColor = 'NONE'
 })
 
+$('#color_palette #reset_colors').on('click', function() {
+    // Remove all color properties from the subnet map
+    function removeColors(tree) {
+        for (let key in tree) {
+            if (key === '_color') {
+                delete tree[key];
+            } else if (typeof tree[key] === 'object' && !key.startsWith('_')) {
+                removeColors(tree[key]);
+            }
+        }
+    }
+
+    removeColors(subnetMap);
+
+    // Re-render the table to show the changes
+    renderTable();
+
+    // Update browser history
+    updateBrowserHistory();
+
+    // Provide feedback
+    $(this).find('span').text('Reset!');
+    setTimeout(() => {
+        $(this).find('span').text('Reset');
+    }, FEEDBACK_DURATION_MS);
+})
+
 $('#bottom_nav #copy_url').on('click', function() {
     // TODO: Provide a warning here if the URL is longer than 2000 characters, probably using a modal.
     let url = window.location.origin + getConfigUrl()
@@ -221,11 +249,21 @@ $('#toggleColumns').on('click', function() {
         $('.additional-column').show();
         $(this).html('<i class="bi bi-table"></i> Hide Additional Columns');
         infoColumnCount = 9; // 5 original + 4 additional (IP, CIDR, Mask, Type)
+        // Add class to body for print styles
+        $('body').addClass('show-additional-columns');
+        // Add landscape print style
+        if (!$('#landscape-print-style').length) {
+            $('head').append('<style id="landscape-print-style">@page { size: landscape; }</style>');
+        }
     } else {
         // Hide additional columns
         $('.additional-column').hide();
         $(this).html('<i class="bi bi-table"></i> Show Additional Columns');
         infoColumnCount = 5; // 5 original columns
+        // Remove class from body
+        $('body').removeClass('show-additional-columns');
+        // Remove landscape print style
+        $('#landscape-print-style').remove();
     }
 
     // Re-render the table to adjust colspan values properly
@@ -971,7 +1009,7 @@ $('#calcbody').on('click', 'td.split,td.join', function(event) {
 
 $('#calcbody').on('keyup', 'td.note input', function(event) {
     // HTML DOM Data elements! Yay! See the `data-*` attributes of the HTML tags
-    let delay = 1000;
+    let delay = FEEDBACK_DURATION_MS;
     clearTimeout(noteTimeout);
     noteTimeout = setTimeout(function(element) {
         mutate_subnet_map('note', element.dataset.subnet, '', element.value)
