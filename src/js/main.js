@@ -71,6 +71,7 @@ let previousOperatingMode = 'Standard'
 let inflightColor = 'NONE'
 let urlVersion = '1'
 let configVersion = '2'
+let focusedSubnetRow = null;
 
 const netsizePatterns = {
     Standard: '^([12]?[0-9]|3[0-2])$',
@@ -87,13 +88,70 @@ const minSubnetSizes = {
 };
 
 $('input#network').on('paste', function (e) {
-    let pastedData = window.event.clipboardData.getData('text')
-    if (pastedData.includes('/')) {
-        let [network, netSize] = pastedData.split('/')
-        $('#network').val(network)
-        $('#netsize').val(netSize)
+    const clipboardData = e.originalEvent?.clipboardData || window.clipboardData;
+    const pastedData = (clipboardData?.getData('text') || '').trim();
+    if (!pastedData.includes('/')) {
+        return;
     }
-    e.preventDefault()
+
+    const [networkRaw, netSizeRaw] = pastedData.split('/', 2);
+    const network = (networkRaw || '').trim();
+    const netSize = (netSizeRaw || '').trim();
+    if (!network || !netSize) {
+        return;
+    }
+
+    $('#network').val(network).trigger('input');
+    $('#netsize').val(netSize).trigger('input');
+    e.preventDefault();
+});
+
+// Keyboard shortcuts (inspired by https://visualsubnetcalc.pages.dev/)
+$(document).on('click', '#calcbody tr', function () {
+    focusedSubnetRow = this;
+});
+
+$(document).on('keydown', function (e) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    if (focusedSubnetRow && !document.body.contains(focusedSubnetRow)) {
+        focusedSubnetRow = null;
+    }
+
+    switch ((e.key || '').toLowerCase()) {
+        case 'enter': {
+            const splitCell = focusedSubnetRow?.querySelector('td.split[data-mutate-verb="split"]');
+            if (splitCell) {
+                splitCell.click();
+                e.preventDefault();
+            }
+            break;
+        }
+        case 'escape': {
+            const joinCellsInRow = focusedSubnetRow ? focusedSubnetRow.querySelectorAll('td.join[data-mutate-verb="join"]') : null;
+            let joinCell = joinCellsInRow && joinCellsInRow.length ? joinCellsInRow[joinCellsInRow.length - 1] : null;
+            if (!joinCell) {
+                const allJoinCells = document.querySelectorAll('td.join[data-mutate-verb="join"]');
+                joinCell = allJoinCells.length ? allJoinCells[allJoinCells.length - 1] : null;
+            }
+            if (joinCell) {
+                joinCell.click();
+                e.preventDefault();
+            }
+            break;
+        }
+        case 'c': {
+            if (!e.ctrlKey && !e.metaKey) {
+                const copyBtn = document.getElementById('copyTable');
+                if (copyBtn) {
+                    copyBtn.click();
+                    e.preventDefault();
+                }
+            }
+            break;
+        }
+    }
 });
 
 $("input#network").on('keydown', function (e) {
@@ -1643,9 +1701,17 @@ function mutate_subnet_map(verb, network, subnetTree, propValue = '') {
                     '_color': get_consolidated_property(subnetTree[mapKey], '_color')
                 }
             } else if (verb === 'note') {
-                subnetTree[mapKey]['_note'] = propValue
+                if (propValue === '') {
+                    delete subnetTree[mapKey]['_note']
+                } else {
+                    subnetTree[mapKey]['_note'] = propValue
+                }
             } else if (verb === 'color') {
-                subnetTree[mapKey]['_color'] = propValue
+                if (propValue === '') {
+                    delete subnetTree[mapKey]['_color']
+                } else {
+                    subnetTree[mapKey]['_color'] = propValue
+                }
             } else {
                 // How did you get here?
             }

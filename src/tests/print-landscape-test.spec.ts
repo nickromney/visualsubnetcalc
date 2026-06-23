@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Print Landscape Orientation", () => {
   test("should add landscape style tag when additional columns are toggled", async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
 
     // Create a network
     await page.fill("#network", "192.168.1.0");
@@ -37,7 +37,7 @@ test.describe("Print Landscape Orientation", () => {
   });
 
   test("should show Usable IPs in print when additional columns are toggled", async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
 
     // Create a network
     await page.fill("#network", "10.0.0.0");
@@ -68,7 +68,7 @@ test.describe("Print Landscape Orientation", () => {
   test("should generate landscape PDF when additional columns are shown", async ({ page, browserName }) => {
     test.skip(browserName !== "chromium", "PDF generation only works in Chromium");
 
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
 
     // Create a network
     await page.fill("#network", "172.16.0.0");

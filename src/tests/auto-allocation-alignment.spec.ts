@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  baseURL: 'http://localhost:8080',
-  ignoreHTTPSErrors: false
-});
-
 test.describe('Auto-Allocation Alignment Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

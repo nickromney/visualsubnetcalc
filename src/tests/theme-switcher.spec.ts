@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Theme Switcher Feature', () => {
     test.beforeEach(async ({ page }) => {
         // Testing against compiled /dist via HTTP server
-        await page.goto('http://localhost:8080');
+        await page.goto('/');
         await page.waitForLoadState('networkidle');
     });
 

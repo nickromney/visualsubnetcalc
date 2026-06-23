@@ -46,9 +46,9 @@ test('Import 192.168.0.0/24', async ({ page }) => {
   await page.getByLabel('Import/Export Content').click();
   await page.getByLabel('Import/Export Content').fill('{\n  "config_version": "2",\n  "base_network": "192.168.0.0/24",\n  "subnets": {\n    "192.168.0.0/24": {}\n  }\n}');
   await page.getByRole('button', { name: 'Import' }).click();
-  await expect(page.getByLabel('Network Address')).toHaveValue('192.168.0.0');
+  await expect(page.getByRole('textbox', { name: 'Network Address' })).toHaveValue('192.168.0.0');
   await expect(page.getByLabel('Network Size')).toHaveValue('24');
-  await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Subnet Address')).toContainText('192.168.0.0/24');
+  await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Network Address')).toContainText('192.168.0.0/24');
 });
 
 //test('Test', async ({ page }) => {

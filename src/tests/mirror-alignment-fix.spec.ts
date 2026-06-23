@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  baseURL: 'http://localhost:8080',
-  ignoreHTTPSErrors: false
-});
-
 test.describe('Mirror Network Alignment Validation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -18,8 +13,8 @@ test.describe('Mirror Network Alignment Validation', () => {
     await page.waitForSelector('#calcbody tr');
 
     // Open mirror modal
-    await page.click('#btn_mirror_network');
-    await page.waitForSelector('#mirrorNetworkModal.show');
+    await page.click('#generateMirror');
+    await page.waitForSelector('#mirrorModal.show');
 
     // Enter mirror network that IS properly aligned to /22
     await page.fill('#mirrorNetwork', '172.22.4.0');
@@ -51,8 +46,8 @@ test.describe('Mirror Network Alignment Validation', () => {
     await page.waitForSelector('#calcbody tr');
 
     // Open mirror modal
-    await page.click('#btn_mirror_network');
-    await page.waitForSelector('#mirrorNetworkModal.show');
+    await page.click('#generateMirror');
+    await page.waitForSelector('#mirrorModal.show');
 
     // Enter mirror network that is NOT properly aligned to /22
     await page.fill('#mirrorNetwork', '172.22.5.0');
@@ -91,8 +86,8 @@ test.describe('Mirror Network Alignment Validation', () => {
       await page.waitForSelector('#calcbody tr');
 
       // Open mirror modal
-      await page.click('#btn_mirror_network');
-      await page.waitForSelector('#mirrorNetworkModal.show');
+      await page.click('#generateMirror');
+      await page.waitForSelector('#mirrorModal.show');
 
       // Test valid mirror
       await page.fill('#mirrorNetwork', testCase.validMirror);
@@ -110,12 +105,12 @@ test.describe('Mirror Network Alignment Validation', () => {
       expect(isInvalid).toBe(true);
 
       // Close modal for next test
-      await page.click('#mirrorNetworkModal .btn-close');
-      await page.waitForSelector('#mirrorNetworkModal', { state: 'hidden' });
+      await page.click('#mirrorModal .btn-close');
+      await page.waitForSelector('#mirrorModal', { state: 'hidden' });
 
       // Reset for next test
-      await page.click('#btn_reset');
-      await page.waitForTimeout(300);
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
     }
   });
 });

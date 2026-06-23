@@ -8,10 +8,11 @@ async function getClipboardText(page) {
 
 test('Renders Max Depth /0 to /32', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').press('Shift+Home');
-  await page.getByLabel('Network Address').fill('0.0.0.0');
-  await page.getByLabel('Network Address').press('Tab');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.press('Shift+Home');
+  await networkAddress.fill('0.0.0.0');
+  await networkAddress.press('Tab');
   await page.getByLabel('Network Size').fill('0');
   await page.getByRole('button', { name: 'Go' }).click();
   await page.getByRole('cell', { name: '0.0.0.0/0 Split' }).click();
@@ -46,23 +47,24 @@ test('Renders Max Depth /0 to /32', async ({ page }) => {
   await page.getByRole('cell', { name: '0.0.0.0/29 Split' }).click();
   await page.getByRole('cell', { name: '0.0.0.0/30 Split' }).click();
   await page.getByRole('cell', { name: '0.0.0.0/31 Split' }).click();
-  await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Subnet Address')).toContainText('0.0.0.0/32');
+  await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Network Address')).toContainText('0.0.0.0/32');
   await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Range of Addresses')).toContainText('0.0.0.0');
   await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Usable IPs')).toContainText('0.0.0.0');
   await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Hosts')).toContainText('1');
   await expect(page.getByLabel('0.0.0.0/32', { exact: true }).getByLabel('Split', { exact: true })).toContainText('/32');
   await expect(page.getByLabel('/31 Join')).toContainText('/31');
-  await expect(page.getByLabel('128.0.0.0/1', { exact: true }).getByLabel('Subnet Address')).toContainText('128.0.0.0/1');
+  await expect(page.getByLabel('128.0.0.0/1', { exact: true }).getByLabel('Network Address')).toContainText('128.0.0.0/1');
 });
 
 test('Change To 192.168.0.0/24', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').fill('192.168.0.0');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.fill('192.168.0.0');
   await page.getByLabel('Network Size').click();
   await page.getByLabel('Network Size').fill('24');
   await page.getByRole('button', { name: 'Go' }).click();
-  await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Subnet Address')).toContainText('192.168.0.0/24');
+  await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Network Address')).toContainText('192.168.0.0/24');
   await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Range of Addresses')).toContainText('192.168.0.0 - 192.168.0.255');
   await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Usable IPs')).toContainText('192.168.0.1 - 192.168.0.254');
   await expect(page.getByLabel('192.168.0.0/24', { exact: true }).getByLabel('Hosts')).toContainText('254');
@@ -72,33 +74,34 @@ test('Change To 192.168.0.0/24', async ({ page }) => {
 
 test('Deep /32 Split', async ({ page }) => {
   await page.goto('/');
-  await page.getByText('/16', { exact: true }).click();
-  await page.getByLabel('10.0.128.0/17', { exact: true }).getByText('/17', { exact: true }).click();
-  await page.getByLabel('10.0.128.0/18', { exact: true }).getByText('/18', { exact: true }).click();
-  await page.getByLabel('10.0.160.0/19', { exact: true }).getByText('/19', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/20', { exact: true }).getByText('/20', { exact: true }).click();
-  await page.getByLabel('10.0.184.0/21', { exact: true }).getByText('/21', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/21', { exact: true }).getByText('/21', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/22', { exact: true }).getByText('/22', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/23', { exact: true }).getByText('/23', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/24', { exact: true }).getByText('/24', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/25', { exact: true }).getByText('/25', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/26', { exact: true }).getByText('/26', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/27', { exact: true }).getByText('/27', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/28', { exact: true }).getByText('/28', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/29', { exact: true }).getByText('/29', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/30', { exact: true }).getByText('/30', { exact: true }).click();
-  await page.getByLabel('10.0.176.0/31', { exact: true }).getByText('/31', { exact: true }).click();
+  await page.locator('td.split[data-subnet="10.0.0.0/16"]').click();
+  await page.locator('td.split[data-subnet="10.0.128.0/17"]').click();
+  await page.locator('td.split[data-subnet="10.0.128.0/18"]').click();
+  await page.locator('td.split[data-subnet="10.0.160.0/19"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/20"]').click();
+  await page.locator('td.split[data-subnet="10.0.184.0/21"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/21"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/22"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/23"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/24"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/25"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/26"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/27"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/28"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/29"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/30"]').click();
+  await page.locator('td.split[data-subnet="10.0.176.0/31"]').click();
   await page.getByRole('textbox', { name: '10.0.176.0/32 Note' }).click();
   await page.getByRole('textbox', { name: '10.0.176.0/32 Note' }).fill('Test Text');
   await page.getByText('Change Colors »').click();
   await page.locator('#palette_picker_6').click();
-  await page.getByRole('cell', { name: '10.0.176.0/32 Subnet Address' }).click();
+  await page.getByLabel('10.0.176.0/32', { exact: true }).getByLabel('Hosts').click();
   await page.getByText('« Stop Changing Colors').click();
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').fill('99.0.0.0');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.fill('99.0.0.0');
   await page.getByRole('button', { name: 'Go' }).click();
-  await expect(page.getByLabel('99.0.176.0/32', { exact: true }).getByLabel('Subnet Address')).toContainText('99.0.176.0/32');
+  await expect(page.getByLabel('99.0.176.0/32', { exact: true }).getByLabel('Network Address')).toContainText('99.0.176.0/32');
   await expect(page.getByLabel('99.0.176.0/32', { exact: true }).getByLabel('Hosts')).toContainText('1');
   await expect(page.getByRole('textbox', { name: '99.0.176.0/32 Note' })).toHaveValue('Test Text');
   await expect(page.getByLabel('99.0.176.0/32', { exact: true }).getByLabel('Split', { exact: true })).toContainText('/32');
@@ -157,11 +160,11 @@ test('Color Splitting', async ({ page }) => {
   await page.goto('/');
   await page.getByText('Change Colors »').click();
   await page.getByLabel('Color 5').click();
-  await page.getByRole('cell', { name: '/16 Subnet Address' }).click();
+  await page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Hosts').click();
   await page.getByText('« Stop Changing Colors').click();
-  await page.getByText('/16', { exact: true }).click();
-  await expect(page.getByRole('row', { name: '10.0.0.0/17' })).toHaveCSS('background-color', 'rgb(155, 246, 255)');
-  await expect(page.getByRole('row', { name: '10.0.128.0/17' })).toHaveCSS('background-color', 'rgb(155, 246, 255)');
+  await page.locator('td.split[data-subnet="10.0.0.0/16"]').click();
+  await expect(page.getByRole('row', { name: '10.0.0.0/17' })).toHaveCSS('background-color', 'rgb(0, 96, 100)');
+  await expect(page.getByRole('row', { name: '10.0.128.0/17' })).toHaveCSS('background-color', 'rgb(0, 96, 100)');
 });
 
 test('Color Joining Same', async ({ page }) => {

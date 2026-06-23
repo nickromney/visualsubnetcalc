@@ -2,20 +2,22 @@ import { test, expect } from '@playwright/test';
 
 test('CIDR Input Typing', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').press('End');
-  await page.getByLabel('Network Address').press('Shift+Home');
-  await page.getByLabel('Network Address').press('Delete');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.press('End');
+  await networkAddress.press('Shift+Home');
+  await networkAddress.press('Delete');
   await page.keyboard.type('192.168.0.0/24');
   await page.getByRole('button', { name: 'Go' }).click();
-  await expect(page.getByRole('cell', { name: '192.168.0.0/24 Subnet Address' })).toContainText('192.168.0.0/24');
+  await expect(page.getByRole('cell', { name: '192.168.0.0/24 Network Address' })).toContainText('192.168.0.0/24');
 });
 
 test('CIDR Input Paste', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').press('End');
-  await page.getByLabel('Network Address').press('Shift+Home');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.press('End');
+  await networkAddress.press('Shift+Home');
   // From: https://github.com/microsoft/playwright/issues/2511
   await page.locator('#network').evaluate((formEl) => {
     const data = `172.16.0.0/12`;
@@ -31,7 +33,7 @@ test('CIDR Input Paste', async ({ page }) => {
   });
 
   await page.getByRole('button', { name: 'Go' }).click();
-  await expect(page.getByRole('cell', { name: '172.16.0.0/12 Subnet Address' })).toContainText('172.16.0.0/12');
+  await expect(page.getByRole('cell', { name: '172.16.0.0/12 Network Address' })).toContainText('172.16.0.0/12');
 });
 
 test('About Dialog', async ({ page }) => {
@@ -48,7 +50,7 @@ test('GitHub Link', async ({ page }) => {
   const page1Promise = page.waitForEvent('popup');
   await page.getByLabel('GitHub').click();
   const page1 = await page1Promise;
-  await expect(page1.locator('#repository-container-header')).toContainText('ckabalan / visualsubnetcalc Public');
+  await expect(page1.locator('#repository-container-header')).toContainText('nickromney / visualsubnetcalc');
 });
 
 test('Table Header Standard Mode', async ({ page }) => {
@@ -122,53 +124,53 @@ test('Test Default Colors', async ({ page }) => {
   await page.getByText('Change Colors »').click();
   // Set the top 10 rows to the default colors and check that they are correct
   await page.getByLabel('Color 1', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.0.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.0.0/20' })).toHaveCSS('background-color', 'rgb(255, 173, 173)');
+  await page.getByLabel('10.0.0.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.0.0/20' })).toHaveCSS('background-color', 'rgb(139, 58, 58)');
   await page.getByLabel('Color 2', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.16.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.16.0/20' })).toHaveCSS('background-color', 'rgb(255, 214, 165)');
+  await page.getByLabel('10.0.16.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.16.0/20' })).toHaveCSS('background-color', 'rgb(139, 90, 43)');
   await page.getByLabel('Color 3', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.32.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.32.0/20' })).toHaveCSS('background-color', 'rgb(253, 255, 182)');
+  await page.getByLabel('10.0.32.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.32.0/20' })).toHaveCSS('background-color', 'rgb(139, 117, 0)');
   await page.getByLabel('Color 4', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.48.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.48.0/20' })).toHaveCSS('background-color', 'rgb(202, 255, 191)');
+  await page.getByLabel('10.0.48.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.48.0/20' })).toHaveCSS('background-color', 'rgb(46, 125, 50)');
   await page.getByLabel('Color 5', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.64.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.64.0/20' })).toHaveCSS('background-color', 'rgb(155, 246, 255)');
+  await page.getByLabel('10.0.64.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.64.0/20' })).toHaveCSS('background-color', 'rgb(0, 96, 100)');
   await page.getByLabel('Color 6', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.80.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.80.0/20' })).toHaveCSS('background-color', 'rgb(160, 196, 255)');
+  await page.getByLabel('10.0.80.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.80.0/20' })).toHaveCSS('background-color', 'rgb(21, 101, 192)');
   await page.getByLabel('Color 7', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.96.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.96.0/20' })).toHaveCSS('background-color', 'rgb(189, 178, 255)');
+  await page.getByLabel('10.0.96.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.96.0/20' })).toHaveCSS('background-color', 'rgb(106, 27, 154)');
   await page.getByLabel('Color 8', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.112.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.112.0/20' })).toHaveCSS('background-color', 'rgb(255, 198, 255)');
+  await page.getByLabel('10.0.112.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.112.0/20' })).toHaveCSS('background-color', 'rgb(136, 14, 79)');
   await page.getByLabel('Color 9', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.128.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.128.0/20' })).toHaveCSS('background-color', 'rgb(230, 230, 230)');
+  await page.getByLabel('10.0.128.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.128.0/20' })).toHaveCSS('background-color', 'rgb(66, 66, 66)');
   await page.getByLabel('Color 10', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.144.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.144.0/20' })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.getByLabel('10.0.144.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.144.0/20' })).toHaveCSS('background-color', 'rgb(97, 97, 97)');
   // Set rows 11 and 12 to Colors 1 and 2 respectively and check that they are correct
   await page.getByLabel('Color 1', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.160.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.160.0/20' })).toHaveCSS('background-color', 'rgb(255, 173, 173)');
+  await page.getByLabel('10.0.160.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.160.0/20' })).toHaveCSS('background-color', 'rgb(139, 58, 58)');
   await page.getByLabel('Color 2', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.176.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.176.0/20' })).toHaveCSS('background-color', 'rgb(255, 214, 165)');
+  await page.getByLabel('10.0.176.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.176.0/20' })).toHaveCSS('background-color', 'rgb(139, 90, 43)');
   // Set rows 11 and 12 to Color 10 (white) to make sure you can change colors later
   await page.getByLabel('Color 10', { exact: true }).click();
-  await page.getByRole('cell', { name: '10.0.160.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.160.0/20' })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await page.getByRole('cell', { name: '10.0.176.0/20 Subnet Address' }).click();
-  await expect(page.getByRole('row', { name: '10.0.176.0/20' })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.getByLabel('10.0.160.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.160.0/20' })).toHaveCSS('background-color', 'rgb(97, 97, 97)');
+  await page.getByLabel('10.0.176.0/20', { exact: true }).getByLabel('Hosts').click();
+  await expect(page.getByRole('row', { name: '10.0.176.0/20' })).toHaveCSS('background-color', 'rgb(97, 97, 97)');
   await page.getByText('« Stop Changing Colors').click();
   // Make sure when you're not in color change mode you cannot change colors
-  await page.getByRole('cell', { name: '10.0.0.0/20 Subnet Address' }).click();
+  await page.getByLabel('10.0.0.0/20', { exact: true }).getByLabel('Hosts').click();
   // Should still be the old color instead of white (the last palette color selected)
-  await expect(page.getByRole('row', { name: '10.0.0.0/20' })).toHaveCSS('background-color', 'rgb(255, 173, 173)');
+  await expect(page.getByRole('row', { name: '10.0.0.0/20' })).toHaveCSS('background-color', 'rgb(139, 58, 58)');
 });
 
 

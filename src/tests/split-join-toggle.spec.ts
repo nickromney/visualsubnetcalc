@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Split/Join Toggle Feature', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:8080');
+        await page.goto('/');
         await page.waitForLoadState('networkidle');
 
         // Set up a network to have split/join columns visible
