@@ -107,6 +107,24 @@ Compile from source:
 
 The full application should then be available within `./dist/`, open `./dist/index.html` in a browser.
 
+## Local validation
+
+This repository uses lefthook for local validation before changes are pushed.
+
+```shell
+lefthook install
+```
+
+The pre-commit hook runs staged-file checks for shell and YAML files. The pre-push hook runs the same local build/test entrypoints used by CI:
+
+```shell
+cd src
+npm run build --if-present
+npm test
+```
+
+Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETCALC_SKIP_HOOKS=1 git ...`, or Git's `--no-verify` flag. GitHub CI is now on demand and can be triggered with `gh workflow run test-branch.yml`.
+
 ### Run with certificates (Optional)
 
 **_NB:_** _required for testing clipboard.writeText() in the browser. Feature is only available in secure (https) mode._
