@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  baseURL: 'http://localhost:8080',
-  ignoreHTTPSErrors: false
-});
-
 test.describe('Alignment Verification', () => {
   test('should verify 4x /26 with /26 padding and /24 alignment', async ({ page }) => {
     await page.goto('/');

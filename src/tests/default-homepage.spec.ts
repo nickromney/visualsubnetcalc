@@ -3,11 +3,11 @@ import { test, expect } from '@playwright/test';
 test('Default Homepage Rendering', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle(/Visual Subnet Calculator/);
-  await expect(page.getByRole('heading')).toContainText('Visual Subnet Calculator');
-  await expect(page.getByLabel('Network Address')).toHaveValue('10.0.0.0');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Visual Subnet Calculator');
+  await expect(page.getByRole('textbox', { name: 'Network Address' })).toHaveValue('10.0.0.0');
   await expect(page.getByLabel('Network Size')).toHaveValue('16');
   await expect(page.locator('#useableHeader')).toContainText('Usable IPs');
-  await expect(page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Subnet Address')).toContainText('10.0.0.0/16');
+  await expect(page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Network Address')).toContainText('10.0.0.0/16');
   await expect(page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Range of Addresses')).toContainText('10.0.0.0 - 10.0.255.255');
   await expect(page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Usable IPs')).toContainText('10.0.0.1 - 10.0.255.254');
   await expect(page.getByLabel('10.0.0.0/16', { exact: true }).getByLabel('Hosts')).toContainText('65534');

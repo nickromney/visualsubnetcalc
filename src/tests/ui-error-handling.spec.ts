@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test('Bad Network Address', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').fill('1');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.fill('1');
   await page.locator('html').click();
   await expect(page.locator('#network')).toHaveClass(/error/i);
   await expect(page.getByText('Must be a valid IPv4 Address')).toBeVisible();
@@ -31,8 +32,9 @@ test('Prevent Go on Bad Input', async ({ page }) => {
 
 test('Network Boundary Correction', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Network Address').click();
-  await page.getByLabel('Network Address').fill('123.45.67.89');
+  const networkAddress = page.getByRole('textbox', { name: 'Network Address' });
+  await networkAddress.click();
+  await networkAddress.fill('123.45.67.89');
   await page.getByLabel('Network Size').click();
   await page.getByLabel('Network Size').fill('20');
   await page.getByRole('button', { name: 'Go' }).click();
@@ -40,9 +42,9 @@ test('Network Boundary Correction', async ({ page }) => {
   await expect(page.locator('#notifyModalDescription')).toContainText('Your network input is not on a network boundary for this network size. It has been automatically changed:');
   await expect(page.locator('#notifyModalDescription')).toContainText('123.45.67.89 -> 123.45.64.0');
   await page.getByLabel('Warning!').getByLabel('Close').click();
-  await expect(page.getByLabel('Network Address')).toHaveValue('123.45.64.0');
+  await expect(page.getByRole('textbox', { name: 'Network Address' })).toHaveValue('123.45.64.0');
   await page.getByLabel('Network Size').click();
-  await expect(page.getByRole('cell', { name: '123.45.64.0/20 Subnet Address' })).toContainText('123.45.64.0/20');
+  await expect(page.getByRole('cell', { name: '123.45.64.0/20 Network Address' })).toContainText('123.45.64.0/20');
   await page.getByRole('cell', { name: '/20 Split' }).click();
   await page.getByLabel('/20 Join').click();
   await expect(page.getByLabel('123.45.64.0/20', { exact: true }).getByLabel('Split', { exact: true })).toContainText('/20');

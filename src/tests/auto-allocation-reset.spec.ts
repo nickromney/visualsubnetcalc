@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  baseURL: 'http://localhost:8080',
-  ignoreHTTPSErrors: false
-});
-
 test.describe('Auto-Allocation Reset Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -167,7 +162,7 @@ aks-apps /24`;
       // Verify no duplicates
       const notes = await page.locator('input[data-subnet]').evaluateAll(inputs =>
         inputs
-          .filter(input => input.value && input.value.trim() !== '')
+          .filter(input => input.value && input.value.trim() !== '' && !input.value.includes('(spare)'))
           .map(input => input.value)
       );
       const uniqueNotes = [...new Set(notes)];

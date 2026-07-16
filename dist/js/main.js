@@ -71,6 +71,7 @@ let previousOperatingMode = 'Standard'
 let inflightColor = 'NONE'
 let urlVersion = '1'
 let configVersion = '2'
+let focusedSubnetRow = null;
 
 const netsizePatterns = {
     Standard: '^([12]?[0-9]|3[0-2])$',
@@ -87,13 +88,70 @@ const minSubnetSizes = {
 };
 
 $('input#network').on('paste', function (e) {
-    let pastedData = window.event.clipboardData.getData('text')
-    if (pastedData.includes('/')) {
-        let [network, netSize] = pastedData.split('/')
-        $('#network').val(network)
-        $('#netsize').val(netSize)
+    const clipboardData = e.originalEvent?.clipboardData || window.clipboardData;
+    const pastedData = (clipboardData?.getData('text') || '').trim();
+    if (!pastedData.includes('/')) {
+        return;
     }
-    e.preventDefault()
+
+    const [networkRaw, netSizeRaw] = pastedData.split('/', 2);
+    const network = (networkRaw || '').trim();
+    const netSize = (netSizeRaw || '').trim();
+    if (!network || !netSize) {
+        return;
+    }
+
+    $('#network').val(network).trigger('input');
+    $('#netsize').val(netSize).trigger('input');
+    e.preventDefault();
+});
+
+// Keyboard shortcuts (inspired by https://visualsubnetcalc.pages.dev/)
+$(document).on('click', '#calcbody tr', function () {
+    focusedSubnetRow = this;
+});
+
+$(document).on('keydown', function (e) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    if (focusedSubnetRow && !document.body.contains(focusedSubnetRow)) {
+        focusedSubnetRow = null;
+    }
+
+    switch ((e.key || '').toLowerCase()) {
+        case 'enter': {
+            const splitCell = focusedSubnetRow?.querySelector('td.split[data-mutate-verb="split"]');
+            if (splitCell) {
+                splitCell.click();
+                e.preventDefault();
+            }
+            break;
+        }
+        case 'escape': {
+            const joinCellsInRow = focusedSubnetRow ? focusedSubnetRow.querySelectorAll('td.join[data-mutate-verb="join"]') : null;
+            let joinCell = joinCellsInRow && joinCellsInRow.length ? joinCellsInRow[joinCellsInRow.length - 1] : null;
+            if (!joinCell) {
+                const allJoinCells = document.querySelectorAll('td.join[data-mutate-verb="join"]');
+                joinCell = allJoinCells.length ? allJoinCells[allJoinCells.length - 1] : null;
+            }
+            if (joinCell) {
+                joinCell.click();
+                e.preventDefault();
+            }
+            break;
+        }
+        case 'c': {
+            if (!e.ctrlKey && !e.metaKey) {
+                const copyBtn = document.getElementById('copyTable');
+                if (copyBtn) {
+                    copyBtn.click();
+                    e.preventDefault();
+                }
+            }
+            break;
+        }
+    }
 });
 
 $("input#network").on('keydown', function (e) {
@@ -1262,7 +1320,7 @@ function addRow(network, netSize, colspan, note, notesWidth, color, operatingMod
     let additionalDisplay = additionalColumnsVisible ? '' : ' style="display: none;"'
     let newRow =
         '            <tr id="' + rowId + '"' + styleTag + rowClass + '  aria-label="' + rowCIDR + '">\n' +
-        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address"><a href="https://cidr.xyz/#' + rowCIDR + '" target="_blank" class="text-decoration-underline" data-bs-toggle="tooltip" data-bs-placement="top" title="Look up on cidr.xyz">' + rowCIDR + '</a></td>\n' +
+        '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' subnetHeader" class="row_address"><a href="https://cidr.xyz/#' + encodeURIComponent(rowCIDR) + '" target="_blank" class="text-decoration-underline" data-bs-toggle="tooltip" data-bs-placement="top" title="Look up on cidr.xyz">' + rowCIDR + '</a></td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' ipHeader" class="row_ip additional-column"' + additionalDisplay + '>' + network + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' cidrHeader" class="row_cidr additional-column"' + additionalDisplay + '>/' + netSize + '</td>\n' +
         '                <td data-subnet="' + rowCIDR + '" aria-labelledby="' + rowId + ' maskHeader" class="row_mask additional-column"' + additionalDisplay + '>' + subnetMask + '</td>\n' +
@@ -1643,9 +1701,17 @@ function mutate_subnet_map(verb, network, subnetTree, propValue = '') {
                     '_color': get_consolidated_property(subnetTree[mapKey], '_color')
                 }
             } else if (verb === 'note') {
-                subnetTree[mapKey]['_note'] = propValue
+                if (propValue === '') {
+                    delete subnetTree[mapKey]['_note']
+                } else {
+                    subnetTree[mapKey]['_note'] = propValue
+                }
             } else if (verb === 'color') {
-                subnetTree[mapKey]['_color'] = propValue
+                if (propValue === '') {
+                    delete subnetTree[mapKey]['_color']
+                } else {
+                    subnetTree[mapKey]['_color'] = propValue
+                }
             } else {
                 // How did you get here?
             }

@@ -1,8 +1,16 @@
 import { test, expect } from "@playwright/test";
 
+async function ensureAdditionalColumnsVisible(page) {
+  const typeHeader = page.locator("#typeHeader");
+  if (!(await typeHeader.isVisible())) {
+    await page.click("#toggleColumns");
+    await page.waitForTimeout(200);
+  }
+}
+
 test.describe("RFC Address Detection", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
     await page.waitForLoadState("networkidle");
   });
 
@@ -15,9 +23,7 @@ test.describe("RFC Address Detection", () => {
     await page.click("#btn_go");
     await page.waitForTimeout(500);
 
-    // Show additional columns to see Type
-    await page.click("#toggleColumns");
-    await page.waitForTimeout(500);
+    await ensureAdditionalColumnsVisible(page);
 
     // Check for RFC1918 in Type column
     let row = page.locator("#calcbody tr").first();
@@ -37,6 +43,8 @@ test.describe("RFC Address Detection", () => {
     await page.click("#btn_go");
     await page.waitForTimeout(500);
 
+    await ensureAdditionalColumnsVisible(page);
+
     row = page.locator("#calcbody tr").first();
     const type2 = await row.locator(".row_type").innerText();
     expect(type2).toBe("RFC1918");
@@ -46,6 +54,8 @@ test.describe("RFC Address Detection", () => {
     await page.fill("#netsize", "24");
     await page.click("#btn_go");
     await page.waitForTimeout(500);
+
+    await ensureAdditionalColumnsVisible(page);
 
     row = page.locator("#calcbody tr").first();
     const type3 = await row.locator(".row_type").innerText();
@@ -61,9 +71,7 @@ test.describe("RFC Address Detection", () => {
     await page.click("#btn_go");
     await page.waitForTimeout(500);
 
-    // Show additional columns to see Type
-    await page.click("#toggleColumns");
-    await page.waitForTimeout(500);
+    await ensureAdditionalColumnsVisible(page);
 
     // Check for RFC6598 in Type column
     let row = page.locator("#calcbody tr").first();
@@ -72,16 +80,18 @@ test.describe("RFC Address Detection", () => {
 
     // Check for underline styling
     await expect(row).toHaveClass(/rfc6598-row/);
-    const textDecoration = await row
+    const textDecorationLine = await row
       .locator(".row_address")
-      .evaluate((el) => window.getComputedStyle(el).textDecoration);
-    expect(textDecoration).toContain("underline");
+      .evaluate((el) => window.getComputedStyle(el).textDecorationLine);
+    expect(textDecorationLine).toContain("underline");
 
     // Test another address in the range
     await page.fill("#network", "100.127.255.0");
     await page.fill("#netsize", "24");
     await page.click("#btn_go");
     await page.waitForTimeout(500);
+
+    await ensureAdditionalColumnsVisible(page);
 
     row = page.locator("#calcbody tr").first();
     const type2 = await row.locator(".row_type").innerText();

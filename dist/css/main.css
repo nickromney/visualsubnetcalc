@@ -43,6 +43,20 @@
     background-color: unset;
 }
 
+/* RFC address styling */
+.rfc1918-row .row_address,
+.rfc1918-row .row_ip,
+.rfc1918-row .row_cidr,
+.rfc1918-row .row_mask,
+.rfc1918-row .row_type {
+    font-weight: 700;
+}
+
+.rfc6598-row .row_address,
+.rfc6598-row .row_address a {
+    text-decoration: underline;
+}
+
 #bottom_nav {
     height:2rem;
 }

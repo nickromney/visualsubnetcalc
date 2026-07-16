@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test.use({
-  baseURL: "http://localhost:8080",
-  ignoreHTTPSErrors: false,
-});
-
 test.describe("Print Styles", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -35,7 +30,7 @@ test.describe("Print Styles", () => {
     expect(printTitle).toBe("10.0.0.0/24");
 
     const printUrl = await page.getAttribute("body", "data-print-url");
-    expect(printUrl).toContain("http://localhost:8080");
+    expect(printUrl).toContain("https://localhost:8443");
   });
 
   test("should hide UI elements in print media", async ({ page }) => {

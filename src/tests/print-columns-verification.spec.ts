@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Print Columns Verification", () => {
   test("should show exactly the right columns in print with additional columns", async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
 
     // Create a network
     await page.fill("#network", "10.0.0.0");
@@ -78,7 +78,7 @@ test.describe("Print Columns Verification", () => {
   });
 
   test("should show only essential columns in print without additional columns", async ({ page }) => {
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
 
     // Create a network
     await page.fill("#network", "10.0.0.0");

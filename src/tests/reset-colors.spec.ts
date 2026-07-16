@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-// Helper constant for checking transparent/empty background colors
-const TRANSPARENT_COLOR_PATTERN = /rgba?\(0,\s*0,\s*0,\s*0\)|transparent/;
+async function getInlineBackgroundColor(row) {
+    return row.evaluate(el => el.style.backgroundColor);
+}
 
 test.describe('Reset Colors Functionality', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:8080');
+        await page.goto('/');
         await page.waitForLoadState('networkidle');
 
         // Set up a network with multiple subnets
@@ -40,43 +41,33 @@ test.describe('Reset Colors Functionality', () => {
         await page.click('#palette_picker_1');
         await page.waitForTimeout(200);
         const firstRow = await page.locator('#calcbody tr').first();
-        await firstRow.locator('.row_address').click();
+        await firstRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Second row - blue
         await page.click('#palette_picker_6');
         await page.waitForTimeout(200);
         const secondRow = await page.locator('#calcbody tr').nth(1);
-        await secondRow.locator('.row_address').click();
+        await secondRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Verify colors are applied
-        let firstRowColor = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        let secondRowColor = await secondRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
+        let firstRowColor = await getInlineBackgroundColor(firstRow);
+        let secondRowColor = await getInlineBackgroundColor(secondRow);
 
-        // Colors should not be transparent/empty
-        expect(firstRowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
-        expect(secondRowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(firstRowColor).not.toBe('');
+        expect(secondRowColor).not.toBe('');
 
         // Click Reset button
         await page.click('#reset_colors');
         await page.waitForTimeout(500);
 
         // Check colors are removed
-        firstRowColor = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        secondRowColor = await secondRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
+        firstRowColor = await getInlineBackgroundColor(firstRow);
+        secondRowColor = await getInlineBackgroundColor(secondRow);
 
-        // Colors should be transparent/empty after reset
-        expect(firstRowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
-        expect(secondRowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(firstRowColor).toBe('');
+        expect(secondRowColor).toBe('');
     });
 
     test('should show feedback when reset is clicked', async ({ page }) => {
@@ -88,7 +79,7 @@ test.describe('Reset Colors Functionality', () => {
         await page.click('#palette_picker_3');
         await page.waitForTimeout(200);
         const firstRow = await page.locator('#calcbody tr').first();
-        await firstRow.locator('.row_address').click();
+        await firstRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Click Reset and check feedback
@@ -111,7 +102,7 @@ test.describe('Reset Colors Functionality', () => {
         // Apply a dark theme color
         await page.click('#palette_picker_4'); // Deep green in dark mode
         const firstRow = await page.locator('#calcbody tr').first();
-        await firstRow.locator('.row_address').click();
+        await firstRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Reset
@@ -119,10 +110,8 @@ test.describe('Reset Colors Functionality', () => {
         await page.waitForTimeout(500);
 
         // Verify reset worked
-        let rowColor = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        expect(rowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
+        let rowColor = await getInlineBackgroundColor(firstRow);
+        expect(rowColor).toBe('');
 
         // Switch to light theme
         await page.click('#theme_light');
@@ -130,24 +119,20 @@ test.describe('Reset Colors Functionality', () => {
 
         // Apply a light theme color
         await page.click('#palette_picker_5'); // Light cyan
-        await firstRow.locator('.row_address').click();
+        await firstRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Verify color applied
-        rowColor = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        expect(rowColor).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+        rowColor = await getInlineBackgroundColor(firstRow);
+        expect(rowColor).not.toBe('');
 
         // Reset again
         await page.click('#reset_colors');
         await page.waitForTimeout(500);
 
         // Verify reset worked in light theme
-        rowColor = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        expect(rowColor).toMatch(TRANSPARENT_COLOR_PATTERN);
+        rowColor = await getInlineBackgroundColor(firstRow);
+        expect(rowColor).toBe('');
     });
 
     test('should persist reset through page actions', async ({ page }) => {
@@ -162,34 +147,26 @@ test.describe('Reset Colors Functionality', () => {
 
         await page.click('#palette_picker_5');
         const secondRow = await page.locator('#calcbody tr').nth(1);
-        await secondRow.locator('.row_address').click();
+        await secondRow.locator('.row_hosts').click();
         await page.waitForTimeout(200);
 
         // Verify colors are applied
-        let color1 = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        let color2 = await secondRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
+        let color1 = await getInlineBackgroundColor(firstRow);
+        let color2 = await getInlineBackgroundColor(secondRow);
 
-        expect(color1).not.toMatch(TRANSPARENT_COLOR_PATTERN);
-        expect(color2).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(color1).not.toBe('');
+        expect(color2).not.toBe('');
 
         // Reset colors
         await page.click('#reset_colors');
         await page.waitForTimeout(500);
 
         // Colors should be cleared
-        color1 = await firstRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
-        color2 = await secondRow.evaluate(el =>
-            window.getComputedStyle(el).backgroundColor
-        );
+        color1 = await getInlineBackgroundColor(firstRow);
+        color2 = await getInlineBackgroundColor(secondRow);
 
-        expect(color1).toMatch(TRANSPARENT_COLOR_PATTERN);
-        expect(color2).toMatch(TRANSPARENT_COLOR_PATTERN);
+        expect(color1).toBe('');
+        expect(color2).toBe('');
 
         // Do another action (split a subnet if possible) to verify colors stay cleared
         const splitCount = await page.locator('td.split').count();
@@ -198,10 +175,8 @@ test.describe('Reset Colors Functionality', () => {
             await page.waitForTimeout(500);
 
             // Original rows should still have no color
-            color1 = await firstRow.evaluate(el =>
-                window.getComputedStyle(el).backgroundColor
-            );
-            expect(color1).toMatch(TRANSPARENT_COLOR_PATTERN);
+            color1 = await getInlineBackgroundColor(firstRow);
+            expect(color1).toBe('');
         }
     });
 
@@ -224,17 +199,15 @@ test.describe('Reset Colors Functionality', () => {
             await page.click(`#palette_picker_${(i % 8) + 1}`);
             await page.waitForTimeout(100);
             const row = await page.locator('#calcbody tr').nth(i);
-            await row.locator('.row_address').click();
+            await row.locator('.row_hosts').click();
             await page.waitForTimeout(100);
         }
 
         // Verify colors are applied
         for (let i of indicesToColor) {
             const row = await page.locator('#calcbody tr').nth(i);
-            const color = await row.evaluate(el =>
-                window.getComputedStyle(el).backgroundColor
-            );
-            expect(color).not.toMatch(TRANSPARENT_COLOR_PATTERN);
+            const color = await getInlineBackgroundColor(row);
+            expect(color).not.toBe('');
         }
 
         // Reset all colors
@@ -245,10 +218,8 @@ test.describe('Reset Colors Functionality', () => {
         const totalRows = await page.locator('#calcbody tr').count();
         for (let i = 0; i < totalRows; i++) {
             const row = await page.locator('#calcbody tr').nth(i);
-            const color = await row.evaluate(el =>
-                window.getComputedStyle(el).backgroundColor
-            );
-            expect(color).toMatch(TRANSPARENT_COLOR_PATTERN);
+            const color = await getInlineBackgroundColor(row);
+            expect(color).toBe('');
         }
     });
 });

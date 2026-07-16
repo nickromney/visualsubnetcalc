@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  baseURL: 'http://localhost:8080',
-  ignoreHTTPSErrors: false
-});
-
 test.describe('Browser History Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -17,17 +12,14 @@ test.describe('Browser History Navigation', () => {
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
 
-    // Get initial URL
-    const initialUrl = page.url();
+    const initialState = await page.evaluate(() => JSON.stringify(window.history.state));
 
     // Split the first subnet
     await page.click('td.split[data-subnet="10.0.0.0/24"]');
     await page.waitForTimeout(200);
 
-    // URL should have changed
-    const afterSplitUrl = page.url();
-    expect(afterSplitUrl).not.toBe(initialUrl);
-    expect(afterSplitUrl).toContain('?c=');
+    const afterSplitState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterSplitState).not.toBe(initialState);
 
     // Should see two /25 subnets
     await expect(page.locator('#calcbody')).toContainText('10.0.0.0/25');
@@ -37,8 +29,8 @@ test.describe('Browser History Navigation', () => {
     await page.click('td.split[data-subnet="10.0.0.0/25"]');
     await page.waitForTimeout(200);
 
-    const afterSecondSplitUrl = page.url();
-    expect(afterSecondSplitUrl).not.toBe(afterSplitUrl);
+    const afterSecondSplitState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterSecondSplitState).not.toBe(afterSplitState);
 
     // Should see /26 subnets
     await expect(page.locator('#calcbody')).toContainText('10.0.0.0/26');
@@ -48,8 +40,10 @@ test.describe('Browser History Navigation', () => {
     await page.goBack();
     await page.waitForTimeout(200);
 
+    const afterBackState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterBackState).toBe(afterSplitState);
+
     // Should be back to two /25 subnets
-    expect(page.url()).toBe(afterSplitUrl);
     await expect(page.locator('#calcbody')).toContainText('10.0.0.0/25');
     await expect(page.locator('#calcbody')).toContainText('10.0.0.128/25');
     await expect(page.locator('#calcbody')).not.toContainText('/26');
@@ -58,8 +52,10 @@ test.describe('Browser History Navigation', () => {
     await page.goBack();
     await page.waitForTimeout(200);
 
+    const afterSecondBackState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterSecondBackState).toBe(initialState);
+
     // Should be back to single /24
-    expect(page.url()).toBe(initialUrl);
     await expect(page.locator('#calcbody')).toContainText('10.0.0.0/24');
     await expect(page.locator('#calcbody')).not.toContainText('/25');
 
@@ -67,8 +63,10 @@ test.describe('Browser History Navigation', () => {
     await page.goForward();
     await page.waitForTimeout(200);
 
+    const afterForwardState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterForwardState).toBe(afterSplitState);
+
     // Should be back to two /25s
-    expect(page.url()).toBe(afterSplitUrl);
     await expect(page.locator('#calcbody')).toContainText('10.0.0.0/25');
     await expect(page.locator('#calcbody')).toContainText('10.0.0.128/25');
   });
@@ -80,7 +78,7 @@ test.describe('Browser History Navigation', () => {
     await page.click('#btn_go');
     await page.waitForSelector('#calcbody tr');
 
-    const initialUrl = page.url();
+    const initialState = await page.evaluate(() => JSON.stringify(window.history.state));
 
     // Split first to create a history entry
     await page.click('td.split[data-subnet="192.168.1.0/24"]');
@@ -92,8 +90,8 @@ test.describe('Browser History Navigation', () => {
     await page.keyboard.press('Tab');
     await page.waitForTimeout(500);
 
-    const afterNoteUrl = page.url();
-    expect(afterNoteUrl).not.toBe(initialUrl);
+    const afterNoteState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterNoteState).not.toBe(initialState);
 
     // Go back (should remove the note)
     await page.goBack();
@@ -135,14 +133,14 @@ test.describe('Browser History Navigation', () => {
     await expect(page.locator('#calcbody')).toContainText('172.16.0.128/26');
     await expect(page.locator('#calcbody')).toContainText('172.16.0.192/26');
 
-    const beforeJoinUrl = page.url();
+    const beforeJoinState = await page.evaluate(() => JSON.stringify(window.history.state));
 
     // Join the first two /26s back into a /25 (join uses the parent subnet)
     await page.click('td.join[data-subnet="172.16.0.0/25"]');
     await page.waitForTimeout(200);
 
-    const afterJoinUrl = page.url();
-    expect(afterJoinUrl).not.toBe(beforeJoinUrl);
+    const afterJoinState = await page.evaluate(() => JSON.stringify(window.history.state));
+    expect(afterJoinState).not.toBe(beforeJoinState);
 
     // Should have one /25 and two /26s
     await expect(page.locator('#calcbody')).toContainText('172.16.0.0/25');

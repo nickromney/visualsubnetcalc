@@ -7,7 +7,7 @@ test.describe("Copy Table to Clipboard", () => {
       await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     }
 
-    await page.goto("http://localhost:8080");
+    await page.goto("/");
     await page.waitForLoadState("networkidle");
   });
 
