@@ -95,8 +95,7 @@ Compile from source:
 > cd visualsubnetcalc
 # Use recommended NVM version
 > nvm use
-# Change to the sources directory
-> cd src
+# Stay at the repository root, where package.json lives
 # Install Bootstrap
 > npm install
 # Compile Bootstrap (Also install sass command line globally)
@@ -118,8 +117,7 @@ lefthook install
 The pre-commit hook runs staged-file checks for shell and YAML files. The pre-push hook runs the same local build/test entrypoints used by CI:
 
 ```shell
-cd src
-npm run build --if-present
+npm run build
 npm test
 ```
 
@@ -136,7 +134,7 @@ Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETC
 # generate CA Certs to be trusted by local browsers
 > mkcert install
 # generate certs for local development
-> cd visualsubnetcalc/src
+> cd visualsubnetcalc
 # generate certs for local development
 > npm run setup:certs
 # run the local webserver with https
@@ -170,3 +168,7 @@ Split icon made by [Freepik](https://www.flaticon.com/authors/freepik) from [Fla
 ## License
 
 Visual Subnet Calculator is released under the [MIT License](https://opensource.org/licenses/MIT)
+
+## Agent operation and plan status
+
+For the current ownership, action-effect and evidence contracts, use [the operating model](docs/agent-system.md). Its implemented plan covers agent navigation and documentation. Feature proposals below remain proposals until their own acceptance evidence is recorded; dated observations retain their original scope.

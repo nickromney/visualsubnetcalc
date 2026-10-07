@@ -1,5 +1,9 @@
 # AGENTS.md
 
+For system ownership, action effects, verification scope or a new agent task,
+read [the operating model](docs/agent-system.md). Detailed product plans
+remain at the linked owners; historical observations retain their dates.
+
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Overview
@@ -11,7 +15,7 @@ Visual Subnet Calculator is a web-based tool for designing network layouts with 
 ### Core Structure
 
 - **Static Site**: The application is entirely client-side (no backend server)
-- **Main Application**: `dist/js/main.js` - Contains all subnet calculation logic and UI interaction
+- **Main Application**: `src/js/main.js` - Owns subnet calculation logic and UI interaction; `dist/js/main.js` is generated.
 - **Styling**: Bootstrap 5 with custom SCSS (`src/scss/custom.scss` compiled to `dist/css/bootstrap.min.css`)
 - **HTML Entry**: `dist/index.html` - Single page application
 - **State Management**: Uses URL parameters for sharing designs (compressed with lz-string)
@@ -30,9 +34,9 @@ The calculator supports multiple cloud provider modes with different subnet rest
 ### Setup and Build
 
 ```bash
-cd src
+# Run from the repository root, where package.json lives.
 nvm use                    # Use Node.js version 20 (if using nvm)
-npm install               # Install dependencies (includes global sass installation)
+npm install               # Install declared local dependencies, including sass
 npm run build             # Compile SCSS to CSS and copy dependencies to dist/
 ```
 
@@ -40,7 +44,7 @@ npm run build             # Compile SCSS to CSS and copy dependencies to dist/
 
 ```bash
 # Basic HTTP server
-npm start                 # Serves from ../dist on http://localhost:8080
+npm start                 # Serves root dist/ on http://localhost:8080
 
 # HTTPS server (required for clipboard features)
 npm run setup:certs       # One-time: Generate local certificates (requires mkcert)
@@ -62,12 +66,12 @@ NO_SERVER=1 npx playwright test # Skip server startup (run tests in parallel)
 
 ```
 /
+├── package.json             # Root dependencies and scripts
+├── playwright.config.ts     # Root test configuration
 ├── src/                     # SOURCE FILES - EDIT THESE
-│   ├── package.json          # Dependencies and scripts
 │   ├── index.html           # Main application HTML source
 │   ├── js/
 │   │   └── main.js         # Core application logic SOURCE
-│   ├── playwright.config.ts  # Test configuration
 │   ├── scss/
 │   │   └── custom.scss      # Custom Bootstrap styling
 │   └── tests/               # Playwright test specs
@@ -123,7 +127,7 @@ After making changes in `src/`:
 
 ### Auto-Allocation Feature
 
-Located in `dist/js/main.js`, the auto-allocation feature:
+Located in `src/js/main.js`, the auto-allocation feature:
 
 - **Always starts fresh**: Clears `subnetMap = {}` before allocating to prevent duplicates
 - **Multiple sort options**: Preserve input order (default), alphabetical by name, or optimize space usage
@@ -232,3 +236,19 @@ Column visibility is toggled via "Show/Hide Additional Columns" button.
 - The subnet hierarchy is recursive - leaf nodes have no sub-keys
 - Notes and colors are stored with `_note` and `_color` keys
 - Use "Analyze Network" to quickly identify gaps and alignment issues
+
+## Root command and share-format acceptance
+
+The root package manifest and Playwright config own commands. `src/js/main.js`
+owns subnet calculation and URL state; `src/index.html` owns the entry page;
+`npm run build` generates `dist`. Root `npm test` runs configured Chromium and
+Firefox projects against HTTPS. Certificates and installed browser engines are
+runtime prerequisites, not proof of a working clipboard.
+
+For changes to provider minimum prefix/reservations, split/join, allocation or
+mirror, select the corresponding existing test in `src/tests`. For URL changes,
+verify serialization/reload preserves network, subnet hierarchy, notes/colors
+and supported version behavior; retain old share examples as compatibility
+fixtures. A diagram/URL round-trip is browser state acceptance, not cloud network
+deployment acceptance. Source, generated build and browser outcome are three
+separate artifacts in the handoff.
