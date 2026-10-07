@@ -73,3 +73,13 @@ checks retain their own scope and are not certified by this pass.
 ## Project decisions
 
 Run npm commands from the repository root: package.json and playwright.config.ts are root-owned. Edit src/js/main.js, src/index.html and src/scss/custom.scss, then npm run build derives dist. The core subnet hierarchy/constraints drive allocation, split/join, mirror and URL sharing; rendered table and compressed URL are views of that same browser model. Test a changed invariant with focused Playwright scenarios before running both configured browser projects. HTTPS/clipboard acceptance requires local certificate setup and browser support; no subnet design output establishes actual cloud deployment. Keep source-to-generated output rules explicit and record confirmed share-format regressions as compatibility fixtures.
+
+## Preserved browser acceptance guards (7 October 2026)
+
+The complete local hook sets `CI=true` and requires its owned test server. This
+preserves focused-test refusal and avoids certifying an existing server's
+possibly stale build. An occupied developer port refuses without terminating
+its process. Disposable real-Playwright fixtures prove `test.only` refusal and
+occupied-server refusal using an owned ephemeral port; process fixtures prove
+skip/recursion refusal and the effective build/test environment. Python helpers
+use the zero-dependency locked uv project with a seven-day resolution policy.

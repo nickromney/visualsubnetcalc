@@ -45,12 +45,16 @@ test('About Dialog', async ({ page }) => {
   await expect(page.getByLabel('About Visual Subnet Calculator').getByText('Close')).toBeVisible();
 });
 
-test('GitHub Link', async ({ page }) => {
+test('GitHub Link', async ({ page, context }) => {
+  // Exercise our link and popup contract; upstream GitHub markup is outside
+  // this local acceptance boundary and must not require an external account.
+  await context.route('https://github.com/**', route =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Link target fixture</title>' }));
   await page.goto('/');
   const page1Promise = page.waitForEvent('popup');
   await page.getByLabel('GitHub').click();
   const page1 = await page1Promise;
-  await expect(page1.locator('#repository-container-header')).toContainText('nickromney / visualsubnetcalc');
+  await expect(page1).toHaveURL('https://github.com/nickromney/visualsubnetcalc');
 });
 
 test('Table Header Standard Mode', async ({ page }) => {

@@ -10,8 +10,8 @@ hook_skip_requested() {
 }
 
 hook_print_skip_and_exit() {
-  echo "WARN VISUALSUBNETCALC_SKIP_HOOKS=1; skipping ${0##*/}"
-  exit 0
+  hook_fail "VISUALSUBNETCALC_SKIP_HOOKS=1 cannot certify an executed check; unset it"
+  exit 1
 }
 
 hook_ok() {
