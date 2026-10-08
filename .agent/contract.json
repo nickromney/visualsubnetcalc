@@ -141,7 +141,7 @@
         },
         {
           "path": "tests/test_local_gate_policy.py",
-          "sha256": "249bd789b1b734f2c295ab51edacdf60141020c9e6184435f874372391cfb2ab"
+          "sha256": "abc94e425da3251535474f8f05582f2004a8a40994b552857edb3451b5b1dfda"
         },
         {
           "path": "scripts/hooks/run-local-ci.sh",
@@ -153,7 +153,7 @@
         },
         {
           "path": "playwright.config.ts",
-          "sha256": "8381fdf9aa9a4bc7139b266a8add9716b01d5b76f74f61721766f87516a7698c"
+          "sha256": "2bc9a0f4b5c7c2f7a9c555db3464ec55535632d1be70b5371b13a4ca7e5e9f52"
         },
         {
           "path": "pyproject.toml",
