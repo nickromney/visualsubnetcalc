@@ -1,5 +1,6 @@
 """Execute the owning hook in a disposable root with observed tool boundaries."""
 from pathlib import Path
+import json
 import os
 import shutil
 import subprocess
@@ -57,6 +58,32 @@ class LocalGatePolicy(unittest.TestCase):
         result = self.run_hook()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('npm test', result.stderr)
+
+
+LOAD_CONFIG = (
+    "const config = (await import(process.argv[1])).default;"
+    "console.log(JSON.stringify({retries: config.retries, forbidOnly: config.forbidOnly,"
+    " reuseExistingServer: config.webServer.reuseExistingServer}));"
+)
+
+class PlaywrightRetryPolicy(unittest.TestCase):
+    def load_real_config(self, **environment):
+        env = {key: value for key, value in os.environ.items()
+               if key not in ('CI', 'NO_SERVER', PREFIX+'_LOCAL_CI_IN_PROGRESS')}
+        env.update(environment)
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-e', LOAD_CONFIG,
+                                 (SOURCE / 'playwright.config.ts').as_uri()],
+                                cwd=SOURCE, env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_local_gate_runs_playwright_with_zero_retries_but_keeps_ci_guards(self):
+        local_gate = self.load_real_config(CI='true', **{PREFIX+'_LOCAL_CI_IN_PROGRESS': '1'})
+        self.assertEqual(local_gate, {'retries': 0, 'forbidOnly': True, 'reuseExistingServer': False})
+        hosted_ci = self.load_real_config(CI='true')
+        self.assertEqual(hosted_ci, {'retries': 2, 'forbidOnly': True, 'reuseExistingServer': False})
+        local_dev = self.load_real_config()
+        self.assertEqual(local_dev['retries'], 0)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,9 @@
-# Visual Subnet Calculator - [visualsubnetcalc.com](https://visualsubnetcalc.com)
+# Visual Subnet Calculator - [visualsubnetcalculator.pages.dev](https://visualsubnetcalculator.pages.dev/)
 
 ![demo.gif](src%2Fdemo.gif)
+
+This fork is hosted on Cloudflare Pages at https://visualsubnetcalculator.pages.dev/. It is forked from
+[ckabalan/visualsubnetcalc](https://github.com/ckabalan/visualsubnetcalc).
 
 Visual Subnet Calculator is a modernized tool based on the original work by [davidc](https://github.com/davidc/subnets).
 It strives to be a tool for quickly designing networks and collaborating on that design with others. It focuses on
@@ -90,7 +93,7 @@ Compile from source:
 
 ```shell
 # Clone the repository
-> git clone https://github.com/ckabalan/visualsubnetcalc
+> git clone https://github.com/nickromney/visualsubnetcalc
 # Change to the repository directory
 > cd visualsubnetcalc
 # Use recommended NVM version
@@ -121,7 +124,7 @@ npm run build
 npm test
 ```
 
-Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETCALC_SKIP_HOOKS=1 git ...`, or Git's `--no-verify` flag. GitHub CI is now on demand and can be triggered with `gh workflow run test-branch.yml`.
+Skip hooks only when you have a reason with `LEFTHOOK=0 git ...` or Git's `--no-verify` flag. This fork has no hosted test workflow; the pre-push hook is the test gate.
 
 ### Run with certificates (Optional)
 
@@ -144,7 +147,7 @@ Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETC
 ## Running in a container
 
 The application is also available as a container from https://hub.docker.com/r/ckabalan/visualsubnetcalc.
-The container is built automatically and pushed to dockerhub on pushes to the develop branch and when when a new git tag is created.
+The Docker build workflow (`.github/workflows/docker-build.yml`) runs only when triggered manually (`workflow_dispatch`); it does not run on pushes or tags.
 
 ### Available Image Tags
 

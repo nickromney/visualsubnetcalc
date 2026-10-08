@@ -8,7 +8,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Overview
 
-Visual Subnet Calculator is a web-based tool for designing network layouts with visual subnet splitting/joining capabilities. The application is built with vanilla JavaScript, Bootstrap 5, and runs as a static site. Available at [visualsubnetcalc.com](https://visualsubnetcalc.com).
+Visual Subnet Calculator is a web-based tool for designing network layouts with visual subnet splitting/joining capabilities. The application is built with vanilla JavaScript, Bootstrap 5, and runs as a static site. Available at [visualsubnetcalculator.pages.dev](https://visualsubnetcalculator.pages.dev/).
 
 ## Architecture
 

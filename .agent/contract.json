@@ -34,7 +34,6 @@
         "src/.npmrc",
         "src/404.html",
         "src/ads.txt",
-        "src/cloudformation.yaml",
         "src/css/main.css",
         "src/demo.gif",
         "src/favicon.ico",
