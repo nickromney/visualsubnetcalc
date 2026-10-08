@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "npm": ">=11"
+  },
   "dependencies": {
     "bootstrap": "^5.3.6",
     "http-server": "^14.1.1",
@@ -14,7 +17,7 @@
     "local-secure-start": "node node_modules/http-server/bin/http-server dist -c-1 -C certs/cert.pem -K certs/cert.key -S -p 8443"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.7.5",
     "sass": "1.77.6"
   }
