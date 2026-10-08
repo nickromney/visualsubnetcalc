@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-For current system ownership, action effects and verification, read [the agent guide](AGENTS.md) and its scoped operating-model pointer.
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview

@@ -1,9 +1,5 @@
 # AGENTS.md
 
-For system ownership, action effects, verification scope or a new agent task,
-read [the operating model](docs/agent-system.md). Detailed product plans
-remain at the linked owners; historical observations retain their dates.
-
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Overview
@@ -237,24 +233,12 @@ Column visibility is toggled via "Show/Hide Additional Columns" button.
 - Notes and colors are stored with `_note` and `_color` keys
 - Use "Analyze Network" to quickly identify gaps and alignment issues
 
-## Root command and share-format acceptance
+## Verify
 
-The root package manifest and Playwright config own commands. `src/js/main.js`
-owns subnet calculation and URL state; `src/index.html` owns the entry page;
-`npm run build` generates `dist`. Root `npm test` runs configured Chromium and
-Firefox projects against HTTPS. Certificates and installed browser engines are
-runtime prerequisites, not proof of a working clipboard.
-
-For changes to provider minimum prefix/reservations, split/join, allocation or
-mirror, select the corresponding existing test in `src/tests`. For URL changes,
-verify serialization/reload preserves network, subnet hierarchy, notes/colors
-and supported version behavior; retain old share examples as compatibility
-fixtures. A diagram/URL round-trip is browser state acceptance, not cloud network
-deployment acceptance. Source, generated build and browser outcome are three
-separate artifacts in the handoff.
-
-The source-owned `.agent/contract.json` declares existing local verification actions,
-their effects and acceptance scope, and lessons bound to exact source/test bytes.
-Run the full local gate with `lefthook run pre-push --force`; a plain manual run
-can select no files. Remote workflows publish allowed artifacts only. Local
-fixture acceptance does not establish a live cloud, device or deployment state.
+- Full local gate: `lefthook run pre-push --force` (after `lefthook install`). A plain manual run can select no files.
+- Build: `npm run build` from the repository root (SCSS to `dist/`).
+- Tests: `npm test` from the repository root runs the Playwright Chromium and Firefox projects over HTTPS. It needs `npm run setup:certs` (requires mkcert) and installed browser engines. `npm run local-secure-start` serves `dist` on port 8443.
+- The hook sets `CI=true`, needs its own test server, and refuses an occupied port rather than killing that process.
+- For changes to provider prefix/reservation rules, split/join, allocation or mirroring, run the matching test in `src/tests`.
+- For URL-state changes, check that serialization and reload keep network, subnet hierarchy, notes and colors. Keep old share URLs as compatibility fixtures.
+- Browser tests prove browser state only, not cloud network deployment.
