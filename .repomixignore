@@ -1,6 +1,5 @@
 # VisualSubnetCalc Custom
 dist/css/bootstrap.*
-src/cloudformation.yaml
 
 
 # RepoPack Defaults

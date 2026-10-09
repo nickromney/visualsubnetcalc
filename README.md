@@ -1,6 +1,9 @@
-# Visual Subnet Calculator - [visualsubnetcalc.com](https://visualsubnetcalc.com)
+# Visual Subnet Calculator - [visualsubnetcalculator.pages.dev](https://visualsubnetcalculator.pages.dev/)
 
 ![demo.gif](src%2Fdemo.gif)
+
+This fork is hosted on Cloudflare Pages at https://visualsubnetcalculator.pages.dev/. It is forked from
+[ckabalan/visualsubnetcalc](https://github.com/ckabalan/visualsubnetcalc).
 
 Visual Subnet Calculator is a modernized tool based on the original work by [davidc](https://github.com/davidc/subnets).
 It strives to be a tool for quickly designing networks and collaborating on that design with others. It focuses on
@@ -90,13 +93,12 @@ Compile from source:
 
 ```shell
 # Clone the repository
-> git clone https://github.com/ckabalan/visualsubnetcalc
+> git clone https://github.com/nickromney/visualsubnetcalc
 # Change to the repository directory
 > cd visualsubnetcalc
 # Use recommended NVM version
 > nvm use
-# Change to the sources directory
-> cd src
+# Stay at the repository root, where package.json lives
 # Install Bootstrap
 > npm install
 # Compile Bootstrap (Also install sass command line globally)
@@ -118,12 +120,11 @@ lefthook install
 The pre-commit hook runs staged-file checks for shell and YAML files. The pre-push hook runs the same local build/test entrypoints used by CI:
 
 ```shell
-cd src
-npm run build --if-present
+npm run build
 npm test
 ```
 
-Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETCALC_SKIP_HOOKS=1 git ...`, or Git's `--no-verify` flag. GitHub CI is now on demand and can be triggered with `gh workflow run test-branch.yml`.
+Skip hooks only when you have a reason with `LEFTHOOK=0 git ...` or Git's `--no-verify` flag. This fork has no hosted test workflow; the pre-push hook is the test gate.
 
 ### Run with certificates (Optional)
 
@@ -136,7 +137,7 @@ Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETC
 # generate CA Certs to be trusted by local browsers
 > mkcert install
 # generate certs for local development
-> cd visualsubnetcalc/src
+> cd visualsubnetcalc
 # generate certs for local development
 > npm run setup:certs
 # run the local webserver with https
@@ -146,7 +147,7 @@ Skip hooks only when you have a reason with `LEFTHOOK=0 git ...`, `VISUALSUBNETC
 ## Running in a container
 
 The application is also available as a container from https://hub.docker.com/r/ckabalan/visualsubnetcalc.
-The container is built automatically and pushed to dockerhub on pushes to the develop branch and when when a new git tag is created.
+The Docker build workflow (`.github/workflows/docker-build.yml`) runs only when triggered manually (`workflow_dispatch`); it does not run on pushes or tags.
 
 ### Available Image Tags
 

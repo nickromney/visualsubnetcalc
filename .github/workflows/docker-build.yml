@@ -4,11 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Test
-    uses: ./.github/workflows/test-branch.yml
   docker:
-    needs: test
     name: Build Docker Image
     runs-on: ubuntu-latest
     steps:
