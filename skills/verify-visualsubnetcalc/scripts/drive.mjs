@@ -1,4 +1,4 @@
-// Headless Chrome driver for the calculator served by control.sh.
+// Headless Playwright driver (VERIFY_BROWSER=chromium|firefox|webkit, default chromium) for the calculator served by control.sh.
 // Usage (via control.sh):
 //   control.sh drive split <network> <prefix> [<child-cidr-to-split>...]
 //        e.g. split 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17 -> enters the base network, presses Go, splits each row
@@ -12,7 +12,7 @@
 // Each run writes NN-<step>.png, rows.json (visible subnet rows), export.json (Import/Export content), steps.jsonl.
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 
 const base = process.env.VERIFY_BASE_URL
 const out = process.env.VERIFY_EVIDENCE_DIR
@@ -23,7 +23,10 @@ const log = (r) => {
   console.log(line)
   appendFileSync(join(out, 'steps.jsonl'), `${line}\n`)
 }
-const browser = await chromium.launch({ headless: true, channel: 'chrome' })
+const browserName = process.env.VERIFY_BROWSER || 'chromium'
+const engine = { chromium, firefox, webkit }[browserName]
+if (!engine) throw new Error(`unknown VERIFY_BROWSER ${browserName}; use chromium | firefox | webkit`)
+const browser = await engine.launch({ headless: true })
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
 const consoleErrors = []
 page.on('pageerror', (e) => consoleErrors.push(String(e)))
@@ -73,7 +76,7 @@ const exportConfig = async () => {
 const [cmd, ...args] = process.argv.slice(2)
 let failed = false
 try {
-  log({ command: cmd, args, base })
+  log({ command: cmd, args, base, browser: browserName, browserVersion: browser.version() })
   await page.goto(`${base}/index.html`)
   if (cmd === 'split') {
     const [network, prefix, ...targets] = args

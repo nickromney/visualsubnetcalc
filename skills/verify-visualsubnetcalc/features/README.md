@@ -10,6 +10,7 @@ This directory is the maintained source for verifying the calculator page. Read 
 
 - Address rows by CIDR (`tr[aria-label]` / `getByLabel(cidr, {exact: true})`), never by index.
 - Never use the copy buttons. They write to the clipboard.
+- Every recipe runs in Chromium, Firefox and WebKit (`VERIFY_BROWSERS`, default all three). Evidence is per browser: `<stamp>-<cmd>-<browser>/`, and `steps.jsonl` logs the browser version.
 
 ## Proof and skip reporting
 

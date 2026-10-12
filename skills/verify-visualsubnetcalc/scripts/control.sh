@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Verification harness for Visual Subnet Calculator: built static site served on 127.0.0.1, headless Chrome.
+# Verification harness for Visual Subnet Calculator: built static site served on 127.0.0.1, headless Chromium, Firefox and WebKit.
 # Built on verify-kit (scripts/verify-lib.sh). Bash 3.2 compatible. Run with --help for usage.
 # shellcheck disable=SC2034 # VK_* settings are read by the sourced verify-lib.sh
 set -euo pipefail
 
 VK_SCRIPT="$0"
 VK_APP="visualsubnetcalc"
-VK_DESCRIPTION="Verification harness for Visual Subnet Calculator: built dist/ served on 127.0.0.1:8280, driven in headless Chrome."
+VK_BROWSER_SKILL=1
+VK_DESCRIPTION="Verification harness for Visual Subnet Calculator: built dist/ served on 127.0.0.1:8280, driven in headless Chromium, Firefox and WebKit (Playwright engines)."
 VK_DEFAULT_BASE_DIR="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/.verify"
 # shellcheck source=verify-lib.sh disable=SC1091
 . "$(cd "$(dirname "$0")" && pwd)/verify-lib.sh"
@@ -43,10 +44,13 @@ vk_paths() {
 
 vk_plan() {
   case "$1" in
-    verify) vk_plan_line "launch, doctor, drive mode azure and standard, split, share, history, doctor, cleanup; assertions on rows.json and steps.jsonl; evidence in $EVIDENCE" ;;
+    verify)
+      local bs
+      bs="$(vk_browsers | tr '\n' ' ')"
+      vk_plan_line "launch, doctor, then in each of: ${bs}drive mode azure and standard, split, share, history, doctor, cleanup; assertions on rows.json and steps.jsonl; evidence in $EVIDENCE" ;;
     launch) vk_plan_line "npm run build (writes dist/); http-server dist on 127.0.0.1:$PORT; record main.js sha in $STATE; create $STATE and $EVIDENCE" ;;
     doctor) vk_plan_line "read-only: the process group of $STATE/server.pid must own $PORT and serve the main.js recorded at launch" ;;
-    drive) shift; vk_plan_line "headless Chrome: node drive.mjs ${*:-<split|mode|share|history>} against $URL; evidence under $EVIDENCE/<stamp>-<cmd>" ;;
+    drive) shift; vk_plan_line "headless Playwright engine VERIFY_BROWSER=${VERIFY_BROWSER:-chromium}: node drive.mjs ${*:-<split|mode|share|history>} against $URL; evidence under $EVIDENCE/<stamp>-<cmd>-${VERIFY_BROWSER:-chromium}" ;;
     cleanup) vk_plan_line "stop our server process group; rm -rf $STATE; keep $EVIDENCE" ;;
     *) vk_unknown_command ;;
   esac
@@ -75,7 +79,14 @@ cmd_doctor() {
   if [ ! -f "$STATE/server.pid" ]; then vk_fail "no server for run $VK_RUN_ID; launch first"; return 1; fi
   if ! vk_group_alive "$STATE/server.pid"; then vk_fail "server pid $(cat "$STATE/server.pid") not alive"; return 1; fi
   if ! vk_listener_in_group "$PORT" "$STATE/server.pid"; then vk_fail "port $PORT not owned by our server process group"; return 1; fi
-  local served
+  local served b browsers missing=""
+  browsers="$(vk_browsers)"
+  for b in $browsers; do
+    if ! (cd "$VK_ROOT" && node -e 'const pw=require("playwright-core"); process.exit(require("fs").existsSync(pw[process.argv[1]].executablePath())?0:1)' "$b") 2>/dev/null; then
+      missing="$missing $b"
+    fi
+  done
+  if [ -n "$missing" ]; then vk_fail "Playwright browser not installed:$missing; run: npx playwright install chromium firefox webkit"; return 1; fi
   served="$(curl -fsS "$URL/js/main.js" 2>/dev/null | shasum -a 256 | awk '{print $1}' || true)"
   if [ -z "$served" ] || [ "$served" != "$(cat "$STATE/main.sha" 2>/dev/null || true)" ]; then
     vk_fail "served main.js differs from this run's build (dist/ rebuilt since launch?)"; return 1
@@ -88,8 +99,9 @@ cmd_drive() {
   if ! vk_group_alive "$STATE/server.pid"; then vk_fail "no live server for run $VK_RUN_ID; launch first"; return 1; fi
   local sub="${1:-drive}"
   if [ $# -gt 0 ]; then shift; fi
-  LAST_DRIVE_DIR="$EVIDENCE/$(vk_stamp)-$sub"
-  VERIFY_BASE_URL="$URL" VERIFY_EVIDENCE_DIR="$LAST_DRIVE_DIR" node "$VK_SCRIPT_DIR/drive.mjs" "$sub" ${@+"$@"}
+  local browser="${VERIFY_BROWSER:-chromium}"
+  LAST_DRIVE_DIR="$EVIDENCE/$(vk_stamp)-$sub-$browser"
+  VERIFY_BROWSER="$browser" VERIFY_BASE_URL="$URL" VERIFY_EVIDENCE_DIR="$LAST_DRIVE_DIR" node "$VK_SCRIPT_DIR/drive.mjs" "$sub" ${@+"$@"}
   vk_say "evidence: $LAST_DRIVE_DIR"
 }
 
@@ -120,28 +132,33 @@ expect_rows() {
 }
 
 vk_verify_recipes() {
-  local base rows
-  cmd_drive mode azure 10.0.0.0 24
-  base="$(last_rows "$LAST_DRIVE_DIR")"
-  vk_expect_contains "$base" '"hosts": "251"'
-  vk_expect_contains "$base" '"usable": "10.0.0.4 - 10.0.0.254"'
+  local base rows browsers b
+  browsers="$(vk_browsers)"
+  for b in $browsers; do
+    VERIFY_BROWSER="$b"; export VERIFY_BROWSER
+    vk_say "browser: $b"
+    cmd_drive mode azure 10.0.0.0 24
+    base="$(last_rows "$LAST_DRIVE_DIR")"
+    vk_expect_contains "$base" '"hosts": "251"'
+    vk_expect_contains "$base" '"usable": "10.0.0.4 - 10.0.0.254"'
 
-  cmd_drive mode standard 10.0.0.0 24
-  base="$(last_rows "$LAST_DRIVE_DIR")"
-  vk_expect_contains "$base" '"hosts": "254"'
-  vk_expect_contains "$base" '"usable": "10.0.0.1 - 10.0.0.254"'
+    cmd_drive mode standard 10.0.0.0 24
+    base="$(last_rows "$LAST_DRIVE_DIR")"
+    vk_expect_contains "$base" '"hosts": "254"'
+    vk_expect_contains "$base" '"usable": "10.0.0.1 - 10.0.0.254"'
 
-  cmd_drive split 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17
-  rows="$(last_rows "$LAST_DRIVE_DIR")"
-  expect_rows "$rows" "10.0.0.0/18 10.0.64.0/18 10.0.128.0/17"
+    cmd_drive split 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17
+    rows="$(last_rows "$LAST_DRIVE_DIR")"
+    expect_rows "$rows" "10.0.0.0/18 10.0.64.0/18 10.0.128.0/17"
 
-  cmd_drive share 10.0.0.0 16 10.0.0.0/16
-  vk_expect_contains "$LAST_DRIVE_DIR/steps.jsonl" '"matchesExportingPage":true'
+    cmd_drive share 10.0.0.0 16 10.0.0.0/16
+    vk_expect_contains "$LAST_DRIVE_DIR/steps.jsonl" '"matchesExportingPage":true'
 
-  cmd_drive history 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17
-  vk_expect_contains "$LAST_DRIVE_DIR/steps.jsonl" '"restoredByBack":true'
+    cmd_drive history 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17
+    vk_expect_contains "$LAST_DRIVE_DIR/steps.jsonl" '"restoredByBack":true'
 
-  cmd_doctor
+    cmd_doctor
+  done
 }
 
 vk_dispatch() {

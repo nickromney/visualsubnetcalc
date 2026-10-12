@@ -48,6 +48,20 @@ setup() {
   [[ "$output" == *"node drive.mjs split 10.0.0.0 16 10.0.0.0/16 against http://127.0.0.1:8280"* ]]
 }
 
+@test "drive plan carries VERIFY_BROWSER into the driver and the evidence path" {
+  run env VERIFY_BROWSER=firefox "$BASH32" "$SCRIPT" --dry-run drive mode azure 10.0.0.0 24
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"VERIFY_BROWSER=firefox"* ]]
+  [[ "$output" == *"<stamp>-<cmd>-firefox"* ]]
+}
+
+@test "the driver launches Playwright's own engines, not a Chrome channel, and logs the version" {
+  run grep -n "channel" "$DRIVE"
+  [ "$status" -eq 1 ] || { echo "$output"; return 1; }
+  grep -q "VERIFY_BROWSER" "$DRIVE"
+  grep -q "browser.version()" "$DRIVE"
+}
+
 @test "the driver never presses copy or clipboard controls" {
   run grep -inE 'copy|clipboard' "$DRIVE"
   [ "$status" -eq 1 ] || { echo "$output"; return 1; }
@@ -73,7 +87,13 @@ STUB
 printf '%s' "${STUB_JS:-}"
 exit 0
 STUB
-  chmod +x "$BATS_TEST_TMPDIR/bin/lsof" "$BATS_TEST_TMPDIR/bin/curl"
+  cat > "$BATS_TEST_TMPDIR/bin/node" <<'STUB'
+#!/bin/bash
+# Stands in for the Playwright installed-browser probe: node -e <script> <browser>.
+[ "${STUB_NODE_MISSING:-}" = "${3:-}" ] && [ -n "${3:-}" ] && exit 1
+exit 0
+STUB
+  chmod +x "$BATS_TEST_TMPDIR/bin/lsof" "$BATS_TEST_TMPDIR/bin/curl" "$BATS_TEST_TMPDIR/bin/node"
 }
 
 # Start a process in its own group, as cmd_launch does, and record it in the run's pidfile.
@@ -106,6 +126,16 @@ record_build() {
     "$BASH32" "$SCRIPT" --execute doctor
   [ "$status" -eq 0 ]
   [[ "$output" == *"OK pid=$SERVER_PID main.js=$sha"* ]]
+}
+
+@test "doctor names a browser that is not installed and the install command" {
+  stub_tools
+  start_run_group
+  record_build 'console.log("built");'
+  run env PATH="$BATS_TEST_TMPDIR/bin:$PATH" STUB_LISTENER="$SERVER_PID" STUB_JS='console.log("built");' \
+    STUB_NODE_MISSING=webkit "$BASH32" "$SCRIPT" --execute doctor
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"FAIL: Playwright browser not installed: webkit; run: npx playwright install chromium firefox webkit"* ]]
 }
 
 @test "doctor refuses when the port listener is outside our group" {

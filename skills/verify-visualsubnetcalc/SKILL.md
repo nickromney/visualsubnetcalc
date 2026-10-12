@@ -1,6 +1,6 @@
 ---
 name: verify-visualsubnetcalc
-description: Build Visual Subnet Calculator and serve dist/ on 127.0.0.1:8280, then drive it in headless Chrome. It enters a base network, splits rows by their accessible names, switches cloud modes (Standard/AWS/Azure/OCI), round-trips a design through Import/Export into a fresh page, and restores with browser Back. It captures row data and the exported JSON. Use when you need to prove a calculation, split/join, mode or state change in the real page.
+description: Build Visual Subnet Calculator and serve dist/ on 127.0.0.1:8280, then drive it in headless Chromium, Firefox and WebKit. It enters a base network, splits rows by their accessible names, switches cloud modes (Standard/AWS/Azure/OCI), round-trips a design through Import/Export into a fresh page, and restores with browser Back. It captures row data and the exported JSON. Use when you need to prove a calculation, split/join, mode or state change in the real page.
 ---
 
 # Verify Visual Subnet Calculator
@@ -24,7 +24,8 @@ Without `--execute` (or with `--dry-run`) the script only prints an
 ## Verify
 
 ```bash
-make verify            # launch, doctor, drive recipes with assertions, cleanup
+make verify            # launch, doctor, drive recipes in each browser with assertions, cleanup
+VERIFY_BROWSERS=firefox make verify   # narrow to one engine while iterating (default: chromium firefox webkit)
 make verify-dry-run    # print the plan only
 make verify-test       # shellcheck, then BATS: contract and app tests, Bash 3.2
 ```
@@ -36,6 +37,10 @@ make targets (`verify.mk`) are vendored from
 Do not edit those three files here. `vendor.sh --check` reports drift, and the
 contract test fails if they differ from the lock. App-specific behaviour, the
 driver's no-clipboard rule included, is tested in `tests/visualsubnetcalc.bats`.
+
+The recipes run once per browser in `VERIFY_BROWSERS` (space or comma
+separated; default `chromium firefox webkit`; unknown names exit 2). A web
+page is proven in all three engines, so narrow the list only to iterate.
 
 `verify` exits non-zero, without `VERIFY PASS`, on the first failed
 assertion. It always runs cleanup. Its assertions are: mode azure gives 251
@@ -74,17 +79,22 @@ C drive share 10.0.0.0 16 10.0.0.0/16               # export, fresh page, import
 C drive history 10.0.0.0 16 10.0.0.0/16 10.0.0.0/17 # second split, Back, compare to first split
 ```
 
-The driver uses the repo's `playwright-core` with installed Google Chrome.
-It never presses "Copy Shareable URL" or "Copy table", because those write
+The driver uses the repo's `playwright-core` and Playwright's own engine
+for `VERIFY_BROWSER` (chromium, firefox or webkit; default chromium). No
+installed Google Chrome is needed. Install the engines with
+`npx playwright install chromium firefox webkit`; `doctor` fails naming any
+missing one. For a single drive, `VERIFY_BROWSER=webkit C drive ...`. It
+never presses "Copy Shareable URL" or "Copy table", because those write
 to the system clipboard.
 
 ## Evidence
 
 Everything goes under `.verify/<run>/evidence/`, which is git-ignored:
-`revision.txt`, `build.log` and `server.log`, plus one `<HHMMSS-NNN>-<cmd>/`
-per drive. Each drive holds full-page `NN-<step>.png`, `NN-<step>.rows.json`
+`revision.txt`, `build.log` and `server.log`, plus one `<HHMMSS-NNN>-<cmd>-<browser>/`
+per drive and browser. Each drive holds full-page `NN-<step>.png`, `NN-<step>.rows.json`
 (subnet, range, usable and hosts per row), `export.json` (the Import/Export
-content, where used) and `steps.jsonl`.
+content, where used) and `steps.jsonl`, whose first line logs the browser name
+and `browserVersion`.
 
 Proof standards:
 
