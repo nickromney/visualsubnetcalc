@@ -25,6 +25,10 @@ The calculator supports multiple cloud provider modes with different subnet rest
 - **Azure**: /29 minimum, 5 reserved addresses
 - **OCI**: /30 minimum, 3 reserved addresses
 
+## Verification skill
+
+To prove a change in the served page, run `make verify` (or `make verify-dry-run` for the plan). It uses `skills/verify-visualsubnetcalc/SKILL.md`: it builds, serves on 127.0.0.1:8280, drives headless Chrome by row CIDR and never touches the clipboard. `make verify-test` runs its BATS contract tests.
+
 ## Development Commands
 
 ### Setup and Build
