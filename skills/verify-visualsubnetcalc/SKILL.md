@@ -54,10 +54,15 @@ rows 10.0.0.0/18, 10.0.64.0/18 and 10.0.128.0/17; share has
 C launch           # VERIFY_PORT=8281 C launch if 8280 is taken
 ```
 
-`launch` runs `npm run build`, which writes the git-ignored `dist/`. It
-records the SHA-256 of `dist/js/main.js` and serves `dist/` with the repo's
-`http-server` on 127.0.0.1:8280. That leaves `npm start` (8080) and the
-Playwright web server (8443) free.
+`launch` snapshots current source under
+`$TMPDIR/verify-visualsubnetcalc/<run>/state/source`, excluding generated
+`dist/`, installed dependencies, VCS data, local secret/config files and local
+certificates. It links the existing `node_modules`, runs `npm run build` in
+that owned snapshot, records the SHA-256 of its `dist/js/main.js`, and serves
+that isolated `dist/` with the repo's `http-server` on 127.0.0.1:8280. The
+project's existing `dist/` is left untouched. Cleanup removes only state with
+this run's ownership marker and stops only this run's server. That leaves
+`npm start` (8080) and the Playwright web server (8443) free.
 
 ## Doctor
 
@@ -66,8 +71,8 @@ C doctor
 ```
 
 Read-only. It checks that our pid owns the port and that the served
-`main.js` hash still matches this run's build. A later `npm run build`
-changes it, and doctor fails rather than letting you prove the wrong code.
+`main.js` hash still matches this run's isolated build. A change to that
+output makes doctor fail rather than letting you prove the wrong code.
 
 ## Drive
 
@@ -108,8 +113,8 @@ Proof standards:
 C cleanup
 ```
 
-Stops only our server. `dist/` stays, because it's generated output.
-Evidence stays.
+Stops our server, removes the owned source snapshot and state, and keeps
+evidence. The project's `dist/` is never modified.
 
 ## Gotchas
 

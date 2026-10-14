@@ -6,6 +6,7 @@ set -euo pipefail
 
 VK_SCRIPT="$0"
 VK_APP="visualsubnetcalc"
+VK_VERIFY_LAUNCH_CREATED=0
 VK_BROWSER_SKILL=1
 VK_DESCRIPTION="Verification harness for Visual Subnet Calculator: built dist/ served on 127.0.0.1:8280, driven in headless Chromium, Firefox and WebKit (Playwright engines)."
 VK_DEFAULT_BASE_DIR="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/.verify"
@@ -35,11 +36,47 @@ vk_sample_commands() {
 }
 
 vk_paths() {
-  STATE="$VK_BASE_DIR/$VK_RUN_ID/state"
+  RUN_DIR="$VK_BASE_DIR/$VK_RUN_ID"
+  STATE="$RUN_DIR/state"
+  SOURCE="$STATE/source"
+  BUILD_DIST="$SOURCE/dist"
+  OWNER="$STATE/.verify-output-owner"
   EVIDENCE="$VK_EVIDENCE_ROOT/$VK_RUN_ID/evidence"
-  PORT="$(cat "$STATE/port" 2>/dev/null || echo "${VERIFY_PORT:-8280}")"
+  PORT="${VERIFY_PORT:-8280}"
+  if [ ! -L "$RUN_DIR" ] && [ ! -L "$STATE" ] && [ ! -L "$STATE/port" ] && [ -f "$STATE/port" ]; then
+    PORT="$(cat "$STATE/port")"
+  fi
   URL="http://127.0.0.1:$PORT"
   LAST_DRIVE_DIR=""
+}
+
+copy_build_source() {
+  local source_root="$1" destination="$2"
+  [ -d "$source_root/node_modules" ] || { vk_fail "installed dependencies missing at $source_root/node_modules"; return 1; }
+  [ ! -e "$destination" ] && [ ! -L "$destination" ] || { vk_fail "build source already exists: $destination"; return 1; }
+  mkdir -p "$destination" || { vk_fail "cannot create build source at $destination"; return 1; }
+  rsync -a \
+    --exclude='.git' --exclude='node_modules' --exclude='dist' --exclude='.verify' \
+    --exclude='.venv' --exclude='.claude' --exclude='.codex' --exclude='.cache' \
+    --exclude='.env' --exclude='.env.*' --exclude='.npmrc' --exclude='.netrc' \
+    --exclude='.aws' --exclude='.secrets' --exclude='certs' \
+    "$source_root/" "$destination/" \
+    || { vk_fail "cannot snapshot source into $destination"; return 1; }
+  ln -s "$source_root/node_modules" "$destination/node_modules" \
+    || { vk_fail "cannot link installed dependencies into $destination"; return 1; }
+}
+
+state_paths_are_safe() {
+  [ ! -L "$RUN_DIR" ] && [ ! -L "$STATE" ]
+}
+
+state_is_owned() {
+  state_paths_are_safe && [ ! -L "$OWNER" ] && [ -f "$OWNER" ] \
+    && [ "$(cat "$OWNER")" = "$VK_APP:$VK_RUN_ID" ]
+}
+
+build_output_is_owned() {
+  state_is_owned && [ ! -L "$SOURCE" ] && [ ! -L "$BUILD_DIST" ] && [ -d "$BUILD_DIST" ]
 }
 
 vk_plan() {
@@ -47,26 +84,38 @@ vk_plan() {
     verify)
       local bs
       bs="$(vk_browsers | tr '\n' ' ')"
-      vk_plan_line "launch, doctor, then in each of: ${bs}drive mode azure and standard, split, share, history, doctor, cleanup; assertions on rows.json and steps.jsonl; evidence in $EVIDENCE" ;;
-    launch) vk_plan_line "npm run build (writes dist/); http-server dist on 127.0.0.1:$PORT; record main.js sha in $STATE; create $STATE and $EVIDENCE" ;;
-    doctor) vk_plan_line "read-only: the process group of $STATE/server.pid must own $PORT and serve the main.js recorded at launch" ;;
+      vk_plan_line "launch isolated source snapshot build, doctor, then in each of: ${bs}drive mode azure and standard, split, share, history, doctor, cleanup; assertions on rows.json and steps.jsonl; evidence in $EVIDENCE" ;;
+    launch) vk_plan_line "snapshot current source, link installed node_modules, npm run build in $SOURCE (isolated $BUILD_DIST), preserve project dist/; serve isolated dist on 127.0.0.1:$PORT" ;;
+    doctor) vk_plan_line "read-only: the process group of $STATE/server.pid must own $PORT and serve the main.js from isolated dist recorded at launch" ;;
     drive) shift; vk_plan_line "headless Playwright engine VERIFY_BROWSER=${VERIFY_BROWSER:-chromium}: node drive.mjs ${*:-<split|mode|share|history>} against $URL; evidence under $EVIDENCE/<stamp>-<cmd>-${VERIFY_BROWSER:-chromium}" ;;
-    cleanup) vk_plan_line "stop our server process group; rm -rf $STATE; keep $EVIDENCE" ;;
+    cleanup) vk_plan_line "stop our server process group, remove only marked run state, and keep $EVIDENCE" ;;
     *) vk_unknown_command ;;
   esac
 }
 
 cmd_launch() {
   if vk_port_busy "$PORT"; then vk_fail "port $PORT in use; set VERIFY_PORT"; return 1; fi
+  if [ -L "$RUN_DIR" ] || [ -L "$STATE" ]; then
+    vk_fail "run state contains a symlink; refusing to write through it"
+    return 1
+  fi
+  if [ -d "$RUN_DIR" ] && [ -n "$(ls -A "$RUN_DIR")" ]; then
+    vk_fail "run directory is not empty; refusing to overwrite $RUN_DIR"
+    return 1
+  fi
   mkdir -p "$STATE" "$EVIDENCE"
+  printf '%s\n' "$VK_APP:$VK_RUN_ID" > "$OWNER"
+  VK_VERIFY_LAUNCH_CREATED=1
   vk_mark_current
   echo "$PORT" > "$STATE/port"
   vk_record_revision "$EVIDENCE/revision.txt"
-  (cd "$VK_ROOT" && npm run build) > "$EVIDENCE/build.log" 2>&1 \
+  copy_build_source "$VK_ROOT" "$SOURCE" > "$EVIDENCE/build.log" 2>&1 \
+    || { vk_fail "source snapshot failed; see $EVIDENCE/build.log"; return 1; }
+  (cd "$SOURCE" && npm run build) >> "$EVIDENCE/build.log" 2>&1 \
     || { vk_fail "build failed; see $EVIDENCE/build.log"; return 1; }
-  shasum -a 256 "$VK_ROOT/dist/js/main.js" | awk '{print $1}' > "$STATE/main.sha"
+  shasum -a 256 "$BUILD_DIST/js/main.js" | awk '{print $1}' > "$STATE/main.sha"
   vk_spawn_group "$STATE/server.pid" "$EVIDENCE/server.log" \
-    node "$VK_ROOT/node_modules/http-server/bin/http-server" "$VK_ROOT/dist" -c-1 -a 127.0.0.1 -p "$PORT"
+    node "$VK_ROOT/node_modules/http-server/bin/http-server" "$BUILD_DIST" -c-1 -a 127.0.0.1 -p "$PORT"
   if ! vk_wait_for 30 curl -fsS -o /dev/null "$URL/index.html"; then
     vk_stop_group "$STATE/server.pid"
     vk_fail "not ready; see $EVIDENCE/server.log"; return 1
@@ -76,7 +125,9 @@ cmd_launch() {
 
 cmd_doctor() {
   vk_say "run=$VK_RUN_ID url=$URL"
+  state_paths_are_safe || { vk_fail "run state contains a symlink; refusing to read through it"; return 1; }
   if [ ! -f "$STATE/server.pid" ]; then vk_fail "no server for run $VK_RUN_ID; launch first"; return 1; fi
+  build_output_is_owned || { vk_fail "server build output is missing, linked or not owned by this verification run"; return 1; }
   if ! vk_group_alive "$STATE/server.pid"; then vk_fail "server pid $(cat "$STATE/server.pid") not alive"; return 1; fi
   if ! vk_listener_in_group "$PORT" "$STATE/server.pid"; then vk_fail "port $PORT not owned by our server process group"; return 1; fi
   local served b browsers missing=""
@@ -96,6 +147,9 @@ cmd_doctor() {
 }
 
 cmd_drive() {
+  state_paths_are_safe || { vk_fail "run state contains a symlink; refusing to read through it"; return 1; }
+  if [ ! -f "$STATE/server.pid" ]; then vk_fail "no live server for run $VK_RUN_ID; launch first"; return 1; fi
+  build_output_is_owned || { vk_fail "server build output is missing, linked or not owned by this verification run"; return 1; }
   if ! vk_group_alive "$STATE/server.pid"; then vk_fail "no live server for run $VK_RUN_ID; launch first"; return 1; fi
   local sub="${1:-drive}"
   if [ $# -gt 0 ]; then shift; fi
@@ -106,10 +160,20 @@ cmd_drive() {
 }
 
 cmd_cleanup() {
+  if [ "${VK_VERIFY_ACTIVE:-0}" -eq 1 ] && [ "${VK_VERIFY_LAUNCH_CREATED:-0}" -ne 1 ]; then
+    vk_say "skipping failure cleanup; this verify invocation did not create run state"
+    return 0
+  fi
+  state_paths_are_safe || { vk_fail "run state contains a symlink; refusing to clean through it"; return 1; }
+  if [ -e "$STATE" ]; then
+    state_is_owned || { vk_fail "refusing to remove unowned state at $STATE"; return 1; }
+  fi
   vk_stop_group "$STATE/server.pid"
-  rm -rf "${STATE:?}"
-  rmdir "$VK_BASE_DIR/$VK_RUN_ID" 2>/dev/null || true
-  vk_clear_current
+  if [ -e "$STATE" ]; then
+    rm -rf "$STATE"
+    rmdir "$RUN_DIR" 2>/dev/null || true
+    vk_clear_current
+  fi
   vk_say "stopped run=$VK_RUN_ID; evidence kept at $EVIDENCE"
 }
 
