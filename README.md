@@ -124,6 +124,12 @@ npm run build
 npm test
 ```
 
+On macOS, `npm test` runs Chromium on the host and Firefox in the pinned
+Playwright v1.63.0 Noble container. Docker is required for the Firefox run.
+The container downloads Node 24.22.1 and verifies its official SHA-256 before
+running the Firefox project, so the repository's Node engine policy remains in
+force. On other hosts, `npm test` runs both projects locally.
+
 Skip hooks only when you have a reason with `LEFTHOOK=0 git ...` or Git's `--no-verify` flag. This fork has no hosted test workflow; the pre-push hook is the test gate.
 
 ### Run with certificates (Optional)
