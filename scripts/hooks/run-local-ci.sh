@@ -20,7 +20,11 @@ fi
 
 cd "${HOOKS_REPO_ROOT}"
 
-env -u VIRTUAL_ENV uv run --locked python -m unittest discover -s tests -p test_local_gate_policy.py -v
+node scripts/check-node-security-floor.mjs
+node --test tests/node-security-floor.test.mjs
+
+env -u VIRTUAL_ENV uv run --locked python scripts/check_node_image_policy.py
+env -u VIRTUAL_ENV uv run --locked python -m unittest discover -s tests -p 'test_*policy.py' -v
 
 cat <<'EOF'
 Visual Subnet Calculator pre-push local CI gate
