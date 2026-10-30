@@ -29,8 +29,9 @@ class LocalGatePolicy(unittest.TestCase):
         self.environment['NO_SERVER'] = '1'
         (self.root/'config').mkdir()
         (self.root/'config/input.yml').write_text('value: fixture\n')
+        self.tool('node', 'exit 0')
         self.tool('npm', 'printf "%s|%s|%s\n" "$*" "${CI:-}" "${NO_SERVER:-}" >> "$MARKER"\nexit 0')
-        self.tool('uv', 'case "$*" in *test_local_gate_policy.py*|*test_browser_ci_guards.py*) exit 0;; esac\nprintf "%s\n" "$*" >> "$MARKER"\nexit 0')
+        self.tool('uv', 'case "$*" in *test_*policy.py*|*check_node_image_policy.py*|*test_browser_ci_guards.py*) exit 0;; esac\nprintf "%s\n" "$*" >> "$MARKER"\nexit 0')
         self.tool('yamllint', 'printf "yaml\n" >> "$MARKER"\nexit 0')
 
     def tool(self, name, body):
@@ -53,7 +54,14 @@ class LocalGatePolicy(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.marker.read_text().splitlines(), ['run build|true|', 'test|true|'])
 
+    def test_failed_node_check_stops_before_build(self):
+        self.tool('node', 'exit 25')
+        result = self.run_hook()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.marker.exists())
+
     def test_failed_browser_check_propagates(self):
+        self.tool('node', 'exit 0')
         self.tool('npm', 'case "$*" in test) exit 25;; esac\nexit 0')
         result = self.run_hook()
         self.assertNotEqual(result.returncode, 0)

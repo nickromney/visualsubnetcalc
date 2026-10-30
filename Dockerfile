@@ -1,16 +1,16 @@
-FROM node:20-alpine as build
+FROM node:22.23.4-alpine3.24@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS build
 
 ARG REACT_APP_SERVICES_HOST=/services/m
 
-# Set working directory and copy only package files for better cache utilization
+# Copy the project once so the reviewed npm policy cannot be overridden later.
 WORKDIR /app/src
-COPY src/package*.json /app/src/
+COPY . /app
+
+# Node 22.23.4 bundles npm 10; verify and install the reviewed npm 11.10.0 bootstrap.
+RUN sh /app/scripts/install-pinned-npm.sh
 
 # Install dependencies
 RUN npm install
-
-# Copy the rest of the application code
-COPY . /app
 
 # Build the application
 RUN npm run build
